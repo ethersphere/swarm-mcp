@@ -1,0 +1,175 @@
+/**
+ * MCP Service implementation for handling blob data operations with Bee (Swarm)
+ */
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { Bee } from '@ethersphere/bee-js';
+import config from './config';
+import { buffer } from 'stream/consumers';
+
+/**
+ * Swarm MCP Server class
+ */
+class SwarmMCPServer {
+  private server: Server;
+  private bee: Bee;
+
+  constructor() {
+    console.error('[Setup] Initializing Swarm MCP server...');
+
+    // Initialize Bee client with the configured endpoint
+    this.bee = new Bee(config.bee.endpoint);
+
+    this.server = new Server(
+      {
+        name: 'swarm-mcp-server',
+        version: '0.1.0',
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
+      }
+    );
+
+    this.setupToolHandlers();
+
+    this.server.onerror = (error) => console.error('[Error]', error);
+
+    process.on('SIGINT', async () => {
+      await this.server.close();
+      process.exit(0);
+    });
+  }
+
+  private setupToolHandlers() {
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: [
+        {
+          name: 'upload_text',
+          description: 'Upload text data to Swarm',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'string',
+                description: 'arbitrary string to upload',
+              },
+            },
+            required: ['data'],
+          },
+        },
+        {
+          name: 'download_text',
+          description: 'Retrieve text data from Swarm',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              reference: {
+                type: 'string',
+                description: 'Swarm reference hash',
+              },
+            },
+            required: ['reference'],
+          },
+        },
+      ],
+    }));
+
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      try {
+        if (!['upload_text', 'download_text'].includes(request.params.name)) {
+          throw new McpError(
+            ErrorCode.MethodNotFound,
+            `Unknown tool: ${request.params.name}`
+          );
+        }
+
+        if (request.params.name === 'upload_text') {
+          const args = request.params.arguments as {
+            data: string;
+          };
+
+          if (!args.data) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'Missing required parameter: data'
+            );
+          }
+
+          console.error(`[API] Uploading blob data to Swarm...`);
+          try {
+            const binaryData = Buffer.from(args.data);
+            const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData);
+            
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({
+                    reference: result.reference.toString(),
+                    message: 'Data successfully uploaded to Swarm',
+                  }, null, 2),
+                },
+              ],
+            };
+          } catch (error) {
+            if (error instanceof Error) {
+              throw new Error(`Error uploading to Swarm: ${error.message}`);
+            }
+            throw error;
+          }
+        } else {
+          // download_text
+          const args = request.params.arguments as {
+            reference: string;
+          };
+
+          if (!args.reference) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'Missing required parameter: reference'
+            );
+          }
+
+          console.error(`[API] Downloading blob from Swarm with reference: ${args.reference}`);
+          try {
+            const data = await this.bee.downloadData(args.reference);
+            const textData = data.toUtf8();
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: textData,
+                },
+              ],
+            };
+          } catch (error) {
+            if (error instanceof Error) {
+              throw new Error(`Error downloading from Swarm: ${error.message}`);
+            }
+            throw error;
+          }
+        }
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error('[Error] Failed to perform operation:', error);
+          throw new McpError(
+            ErrorCode.InternalError,
+            `Failed to perform operation: ${error.message}`
+          );
+        }
+        throw error;
+      }
+    });
+  }
+
+  async run() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('Swarm MCP server running on stdio');
+  }
+}
+
+export default new SwarmMCPServer();
