@@ -1,18 +1,17 @@
 /**
  * MCP Service implementation for handling blob data operations with Bee (Swarm)
  */
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { Bee } from '@ethersphere/bee-js';
 import config from './config';
-import { buffer } from 'stream/consumers';
 
 /**
  * Swarm MCP Server class
  */
 class SwarmMCPServer {
-  private server: Server;
+  private server: McpServer;
   private bee: Bee;
 
   constructor() {
@@ -21,7 +20,7 @@ class SwarmMCPServer {
     // Initialize Bee client with the configured endpoint
     this.bee = new Bee(config.bee.endpoint);
 
-    this.server = new Server(
+    this.server = new McpServer(
       {
         name: 'swarm-mcp-server',
         version: '0.1.0',
@@ -29,13 +28,14 @@ class SwarmMCPServer {
       {
         capabilities: {
           tools: {},
+          resources: {},
         },
       }
     );
 
     this.setupToolHandlers();
 
-    this.server.onerror = (error) => console.error('[Error]', error);
+    this.server.server.onerror = (error: Error) => console.error('[Error]', error);
 
     process.on('SIGINT', async () => {
       await this.server.close();
@@ -44,7 +44,7 @@ class SwarmMCPServer {
   }
 
   private setupToolHandlers() {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    this.server.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
           name: 'upload_text',
@@ -77,7 +77,7 @@ class SwarmMCPServer {
       ],
     }));
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    this.server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       try {
         if (!['upload_text', 'download_text'].includes(request.params.name)) {
           throw new McpError(
