@@ -56,6 +56,11 @@ class SwarmMCPServer {
                 type: 'string',
                 description: 'arbitrary string to upload',
               },
+              isFile: {
+                type: 'boolean',
+                description: 'whether the data is encoded in base64',
+                default: false
+              },
             },
             required: ['data'],
           },
@@ -69,6 +74,11 @@ class SwarmMCPServer {
               reference: {
                 type: 'string',
                 description: 'Swarm reference hash',
+              },
+              isFile: {
+                type: 'boolean',
+                description: 'whether to return the result as file content',
+                default: false
               },
             },
             required: ['reference'],
@@ -89,6 +99,7 @@ class SwarmMCPServer {
         if (request.params.name === 'upload_text') {
           const args = request.params.arguments as {
             data: string;
+            isFile?: boolean;
           };
 
           if (!args.data) {
@@ -100,7 +111,10 @@ class SwarmMCPServer {
 
           console.error(`[API] Uploading blob data to Swarm...`);
           try {
-            const binaryData = Buffer.from(args.data);
+            // Handle base64 encoded data if specified
+            const binaryData = args.isFile 
+              ? Buffer.from(args.data, 'base64')
+              : Buffer.from(args.data);
             const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData);
             
             return {
@@ -124,6 +138,7 @@ class SwarmMCPServer {
           // download_text
           const args = request.params.arguments as {
             reference: string;
+            isFile?: boolean;
           };
 
           if (!args.reference) {
@@ -136,15 +151,27 @@ class SwarmMCPServer {
           console.error(`[API] Downloading blob from Swarm with reference: ${args.reference}`);
           try {
             const data = await this.bee.downloadData(args.reference);
-            const textData = data.toUtf8();
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: textData,
-                },
-              ],
-            };
+            
+            // Return as base64 or UTF-8 based on isBase64 flag
+            if (args.isFile) {
+              return {
+                content: [
+                  {
+                    type: 'blob',
+                    data: data.toBase64(),
+                  },
+                ],
+              };
+            } else {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: data.toUtf8(),
+                  },
+                ],
+              };
+            }
           } catch (error) {
             if (error instanceof Error) {
               throw new Error(`Error downloading from Swarm: ${error.message}`);
