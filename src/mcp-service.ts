@@ -15,7 +15,7 @@ class SwarmMCPServer {
   private bee: Bee;
 
   constructor() {
-    console.error('[Setup] Initializing Swarm MCP server...');
+    console.log('[Setup] Initializing Swarm MCP server...');
 
     // Initialize Bee client with the configured endpoint
     this.bee = new Bee(config.bee.endpoint);
@@ -98,7 +98,6 @@ class SwarmMCPServer {
             );
           }
 
-          console.error(`[API] Uploading blob data to Swarm...`);
           try {
             const binaryData = Buffer.from(args.data);
             const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData);
@@ -133,7 +132,7 @@ class SwarmMCPServer {
             );
           }
 
-          console.error(`[API] Downloading blob from Swarm with reference: ${args.reference}`);
+          console.log(`[API] Downloading blob from Swarm with reference: ${args.reference}`);
           try {
             const data = await this.bee.downloadData(args.reference);
             const textData = data.toUtf8();
@@ -168,7 +167,7 @@ class SwarmMCPServer {
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('Swarm MCP server running on stdio');
+    console.log('Swarm MCP server running on stdio');
   }
 }
 
