@@ -58,6 +58,13 @@ class SwarmMCPServer {
                 type: 'string',
                 description: 'arbitrary string to upload',
               },
+              redundancyLevel: {
+                type: 'number',
+                description: 'redundancy level for fault tolerance ' +
+                '(higher values provide better fault tolerance but increase storage overhead)'+
+                '0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid',
+                default: 0
+              },
             },
             required: ['data'],
           },
@@ -90,6 +97,13 @@ class SwarmMCPServer {
                 type: 'boolean',
                 description: 'whether the data parameter is a file path',
                 default: false
+              },
+              redundancyLevel: {
+                type: 'number',
+                description: 'redundancy level for fault tolerance ' +
+                '(higher values provide better fault tolerance but increase storage overhead)'+
+                '0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid',
+                default: 0
               }
             },
             required: ['data'],
@@ -104,6 +118,13 @@ class SwarmMCPServer {
               folderPath: {
                 type: 'string',
                 description: 'path to the folder to upload',
+              },
+              redundancyLevel: {
+                type: 'number',
+                description: 'redundancy level for fault tolerance ' +
+                '(higher values provide better fault tolerance but increase storage overhead)'+
+                '0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid',
+                default: 0
               }
             },
             required: ['folderPath'],
@@ -124,6 +145,7 @@ class SwarmMCPServer {
         if (request.params.name === 'upload_text') {
           const args = request.params.arguments as {
             data: string;
+            redundancyLevel?: number;
           };
 
           if (!args.data) {
@@ -135,7 +157,11 @@ class SwarmMCPServer {
 
           try {
             const binaryData = Buffer.from(args.data);
-            const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData);
+
+            const redundancyLevel = args.redundancyLevel;
+            const options = redundancyLevel ? { redundancyLevel } : undefined;
+            
+            const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData, options);
             
             return {
               content: [
@@ -143,6 +169,7 @@ class SwarmMCPServer {
                   type: 'text',
                   text: JSON.stringify({
                     reference: result.reference.toString(),
+                    url: config.bee.endpoint + '/bytes/' + result.reference.toString(),
                     message: 'Data successfully uploaded to Swarm',
                   }, null, 2),
                 },
@@ -158,6 +185,7 @@ class SwarmMCPServer {
           const args = request.params.arguments as {
             data: string;
             isPath?: boolean;
+            redundancyLevel?: number;
           };
 
           if (!args.data) {
@@ -169,6 +197,7 @@ class SwarmMCPServer {
 
           try {
             let binaryData: Buffer;
+            let name: string | undefined;
             
             if (args.isPath) {
               // Check if in stdio mode for file path uploads
@@ -188,12 +217,13 @@ class SwarmMCPServer {
                   `Unable to read file at path: ${args.data}`
                 );
               }
+              name = args.data.split('/').pop();
             } else {
               // Treat as base64 encoded content
               binaryData = Buffer.from(args.data, 'base64');
             }
             
-            const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData);
+            const result = await this.bee.uploadFile(config.bee.postageBatchId, binaryData, name);
             
             return {
               content: [
@@ -201,6 +231,7 @@ class SwarmMCPServer {
                   type: 'text',
                   text: JSON.stringify({
                     reference: result.reference.toString(),
+                    url: config.bee.endpoint + '/bzz/' + result.reference.toString(),
                     message: 'File successfully uploaded to Swarm',
                   }, null, 2),
                 },
@@ -218,6 +249,7 @@ class SwarmMCPServer {
         } else if (request.params.name === 'upload_folder') {
           const args = request.params.arguments as {
             folderPath: string;
+            redundancyLevel?: number;
           };
 
           if (!args.folderPath) {
@@ -252,8 +284,10 @@ class SwarmMCPServer {
               );
             }
 
-            // Upload folder using Bee client
-            const result = await this.bee.uploadFilesFromDirectory(config.bee.postageBatchId, args.folderPath);
+            const redundancyLevel = args.redundancyLevel;
+            const options = redundancyLevel ? { redundancyLevel } : undefined;
+            
+            const result = await this.bee.uploadFilesFromDirectory(config.bee.postageBatchId, args.folderPath, options);
             
             return {
               content: [
@@ -261,6 +295,7 @@ class SwarmMCPServer {
                   type: 'text',
                   text: JSON.stringify({
                     reference: result.reference.toString(),
+                    url: config.bee.endpoint + '/bzz/' + result.reference.toString(),
                     message: 'Folder successfully uploaded to Swarm',
                   }, null, 2),
                 },
