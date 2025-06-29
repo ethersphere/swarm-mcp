@@ -25,20 +25,66 @@ Uploads text data to the Swarm network.
 
 **Parameters:**
 - `data`: String data to upload
+- `redundancyLevel`: (Optional) Redundancy level for fault tolerance (0-4, default: 0)
+  - 0: none
+  - 1: medium
+  - 2: strong
+  - 3: insane
+  - 4: paranoid
 
 **Returns:**
 - `reference`: Swarm reference hash for the uploaded data
+- `url`: URL to access the data via Bee API
 - `message`: Status message
 
 ### `download_text`
 
-Retrieves text data from the Swarm network.
+Retrieves text data from the Swarm network. Should be used when the data is known to be text format.
 
 **Parameters:**
 - `reference`: Swarm reference hash
 
 **Returns:**
 - Retrieved text data
+
+### `upload_file`
+
+Uploads a file to the Swarm network.
+
+**Parameters:**
+- `data`: Base64 encoded file content or file path
+- `isPath`: (Optional) Whether the data parameter is a file path (default: false)
+- `redundancyLevel`: (Optional) Redundancy level for fault tolerance (0-4, default: 0)
+
+**Returns:**
+- `reference`: Swarm reference hash for the uploaded file
+- `url`: URL to access the file via Bee API
+- `message`: Status message
+
+### `upload_folder`
+
+Uploads a folder to the Swarm network.
+
+**Parameters:**
+- `folderPath`: Path to the folder to upload
+- `redundancyLevel`: (Optional) Redundancy level for fault tolerance (0-4, default: 0)
+
+**Returns:**
+- `reference`: Swarm reference hash for the uploaded folder
+- `url`: URL to access the folder via Bee API
+- `message`: Status message
+
+### `download_folder`
+
+Downloads folder, files, or binary data from a Swarm reference. This tool should be prioritized over `download_text` if there is no assumption about the data type.
+
+**Parameters:**
+- `reference`: Swarm reference hash
+- `filePath`: (Optional) File path to save the downloaded content (only available in stdio mode)
+
+**Returns:**
+- If `filePath` is not provided: List of files in the manifest
+- If `filePath` is provided: Content saved to specified location
 
 ## Setup
 
@@ -102,4 +148,4 @@ The Swarm MCP server communicates via standard input/output (stdio) following th
 
 1. Start the server
 2. Connect your MCP-compatible client to the server
-3. Use the provided `upload_text` and `download_text` tools
+3. Use the provided MCP tools (`upload_text`, `download_text`, `upload_file`, `upload_folder`, `download_folder`)
