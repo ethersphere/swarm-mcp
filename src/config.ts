@@ -23,8 +23,8 @@ const config: Config = {
   
   // Bee API configuration
   bee: {
-    endpoint: 'https://api.gateway.ethswarm.org',
-    postageBatchId: '0000000000000000000000000000000000000000000000000000000000000000', // Default postage batch ID
+    endpoint: process.env.BEE_API_URL || 'https://api.gateway.ethswarm.org',
+    postageBatchId: process.env.BEE_BATCH_ID || '0000000000000000000000000000000000000000000000000000000000000000', // Default postage batch ID
   }
 };
 
