@@ -14,7 +14,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@ethersphere/bee-js": "^9.4.1"
+    "@ethersphere/bee-js": "^9.4.1",
+    "@modelcontextprotocol/sdk": "^1.13.2"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
