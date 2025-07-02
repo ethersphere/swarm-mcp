@@ -5,3 +5,9 @@ export function hexToBytes(hex: string): Uint8Array {
   }
   return bytes;
 }
+
+export interface ToolResponse {
+    [x: string]: unknown;
+    tools?: { [x: string]: unknown; name: string; /* other properties */ };
+    _meta?: { [x: string]: unknown; };
+}

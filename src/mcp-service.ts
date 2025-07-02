@@ -4,14 +4,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from '@modelcontextprotocol/sdk/types.js';
-import { Bee, MantarayNode, Utils } from '@ethersphere/bee-js';
+import { Bee } from '@ethersphere/bee-js';
 import config from './config';
-import fs from 'fs';
-import { promisify } from 'util';
-import path from 'path';
-import crypto from 'crypto';
-import { Wallet } from '@ethereumjs/wallet';
-import { hexToBytes } from './utils';
+// Import refactored tool modules
+import { uploadText, UploadTextArgs } from './tools/upload-text';
+import { downloadText, DownloadTextArgs } from './tools/download-text';
+import { uploadFile, UploadFileArgs } from './tools/upload-file';
+import { uploadFolder, UploadFolderArgs } from './tools/upload-folder';
+import { downloadFolder, DownloadFolderArgs } from './tools/download-folder';
 
 /**
  * Swarm MCP Server class
@@ -169,378 +169,31 @@ class SwarmMCPServer {
     }));
 
     this.server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      if (!['upload_text', 'download_text', 'upload_file', 'upload_folder', 'download_folder'].includes(request.params.name)) {
-        throw new McpError(
-          ErrorCode.MethodNotFound,
-          `Unknown tool: ${request.params.name}`
-        );
-      }
-
-      if (request.params.name === 'upload_text') {
-        const args = request.params.arguments as {
-          data: string;
-          redundancyLevel?: number;
-          memoryTopic?: string;
-        };
-
-        if (!args.data) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            'Missing required parameter: data'
-          );
-        }
-
-        const binaryData = Buffer.from(args.data);
-
-        const redundancyLevel = args.redundancyLevel;
-        const options = redundancyLevel ? { redundancyLevel } : undefined;
-        
-        if (!args.memoryTopic) {
-          const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData, options);
-          
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  reference: result.reference.toString(),
-                  url: config.bee.endpoint + '/bytes/' + result.reference.toString(),
-                  message: 'Data successfully uploaded to Swarm',
-                }, null, 2),
-              },
-            ],
-          };
-        } else {
-          // Feed upload if memoryTopic is specified
-          if (!config.bee.feedPrivateKey) {
-            throw new McpError(
-              ErrorCode.InvalidParams,
-              'Feed private key not configured. Set BEE_FEED_PK environment variable.'
-            );
-          }
-          
-          // Process topic - if not a hex string, hash it
-          let topic = args.memoryTopic;
-          if (topic.startsWith('0x')) {
-            topic = topic.slice(2);
-          }
-          const isHexString = /^[0-9a-fA-F]{64}$/.test(args.memoryTopic);
-          
-          if (!isHexString) {
-            // Hash the topic string using SHA-256
-            const hash = crypto.createHash('sha256').update(args.memoryTopic).digest('hex');
-            topic = hash;
-          }
-          
-          // Convert topic string to bytes
-          const topicBytes = hexToBytes(topic);
-
-          const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
-          const signer = new Wallet(feedPrivateKey);
-          const owner = signer.getAddressString().slice(2);
-          const feedWriter = this.bee.makeFeedWriter(topicBytes, feedPrivateKey);
-          
-          const result = await feedWriter.uploadPayload(config.bee.postageBatchId, binaryData);
-          const reference = result.reference.toString();
-          
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  reference,
-                  topicString: args.memoryTopic,
-                  topic: topic,
-                  feedUrl: `${config.bee.endpoint}/feeds/${owner}/${topic}`,
-                  message: 'Data successfully uploaded to Swarm and linked to feed',
-                }, null, 2),
-              },
-            ],
-          };
-        }
-      } else if (request.params.name === 'upload_file') {
-        const args = request.params.arguments as {
-          data: string;
-          isPath?: boolean;
-          redundancyLevel?: number;
-        };
-
-        if (!args.data) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            'Missing required parameter: data'
-          );
-        }
-
-        try {
-          let binaryData: Buffer;
-          let name: string | undefined;
-          
-          if (args.isPath) {
-            // Check if in stdio mode for file path uploads
-            if (!(this.server.server.transport instanceof StdioServerTransport)) {
-              throw new McpError(
-                ErrorCode.InvalidParams,
-                'File path uploads are only supported in stdio mode'
-              );
-            }
-            
-            // Read file from path
-            try {
-              binaryData = await promisify(fs.readFile)(args.data);
-            } catch (fileError) {
-              throw new McpError(
-                ErrorCode.InvalidParams,
-                `Unable to read file at path: ${args.data}`
-              );
-            }
-            name = args.data.split('/').pop();
-          } else {
-            binaryData = Buffer.from(args.data, 'base64');
-          }
-          
-          const result = await this.bee.uploadFile(config.bee.postageBatchId, binaryData, name);
-          
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  reference: result.reference.toString(),
-                  url: config.bee.endpoint + '/bzz/' + result.reference.toString(),
-                  message: 'File successfully uploaded to Swarm',
-                }, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          if (error instanceof McpError) {
-            throw error;
-          }
-          if (error instanceof Error) {
-            throw new Error(`Error uploading file to Swarm: ${error.message}`);
-          }
-          throw error;
-        }
-      } else if (request.params.name === 'upload_folder') {
-        const args = request.params.arguments as {
-          folderPath: string;
-          redundancyLevel?: number;
-        };
-
-        if (!args.folderPath) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            'Missing required parameter: folderPath'
-          );
-        }
-
-        // Check if in stdio mode for folder path uploads
-        if (!(this.server.server.transport instanceof StdioServerTransport)) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            'Folder path uploads are only supported in stdio mode'
-          );
-        }
-
-        // Check if folder exists
-        const stats = await promisify(fs.stat)(args.folderPath);
-        if (!stats.isDirectory()) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            `Path is not a directory: ${args.folderPath}`
-          );
-        }
-
-        const redundancyLevel = args.redundancyLevel;
-        const options = redundancyLevel ? { redundancyLevel } : undefined;
-        
-        const result = await this.bee.uploadFilesFromDirectory(config.bee.postageBatchId, args.folderPath, options);
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                reference: result.reference.toString(),
-                url: config.bee.endpoint + '/bzz/' + result.reference.toString(),
-                message: 'Folder successfully uploaded to Swarm',
-              }, null, 2),
-            },
-          ],
-        };
-      } else if (request.params.name === 'download_folder') {
-        const args = request.params.arguments as {
-          reference: string;
-          filePath?: string;
-        };
-
-        if (!args.reference) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            'Missing required parameter: reference'
-          );
-        }
-        if (args.filePath && !(this.server.server.transport instanceof StdioServerTransport)) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            'Saving to file path is only supported in stdio mode'
-          );
-        }
-
-        console.log(`[API] Downloading folder from Swarm with reference: ${args.reference}`);
+      // Extract arguments from the request
+      const args = request.params.arguments;
       
-          // Check if the reference is a manifest
-          let isManifest = false;
-        
-          let node: MantarayNode 
+      // Call the appropriate tool based on the request name
+      switch (request.params.name) {
+        case 'upload_text':
+          return uploadText(args as unknown as UploadTextArgs, this.bee);
           
-          try {
-            node = await MantarayNode.unmarshal(this.bee, args.reference);
-            await node.loadRecursively(this.bee);
-            isManifest = true;
-          } catch (error) {
-            // ignore
-          }
-
-          if (isManifest) {
-            if (args.filePath) {
-              const destinationFolder = args.filePath;
-              
-              if (!fs.existsSync(destinationFolder)) {
-                await promisify(fs.mkdir)(destinationFolder, { recursive: true });
-              }
-              
-              const nodes = node!.collect();
-              
-              // Download each node
-              for (const node of nodes) {
-                const parsedPath = path.parse(node.fullPathString);
-                const nodeDestFolder = path.join(destinationFolder, parsedPath.dir);
-                
-                // Create subdirectories if necessary
-                if (!fs.existsSync(nodeDestFolder)) {
-                  await promisify(fs.mkdir)(nodeDestFolder, { recursive: true });
-                }
-                
-                const data = await this.bee.downloadData(node.targetAddress);
-                await promisify(fs.writeFile)(
-                  path.join(destinationFolder, node.fullPathString),
-                  data.toUint8Array()
-                );
-              }
-              
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: JSON.stringify({
-                      reference: args.reference,
-                      manifestNodeCount: nodes.length,
-                      savedTo: destinationFolder,
-                      message: `Manifest content (${nodes.length} files) successfully downloaded to ${destinationFolder}`,
-                    }, null, 2),
-                  },
-                ],
-              };
-            } else { // regular file
-              const nodes = node!.collect();
-              const filesList = nodes.map(node => ({
-                path: node.fullPathString || '/',
-                targetAddress: Array.from(node.targetAddress)
-                  .map(e => e.toString(16).padStart(2, '0'))
-                  .join(''),
-                metadata: node.metadata
-              }));
-              
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: JSON.stringify({
-                      reference: args.reference,
-                      type: 'manifest',
-                      files: filesList,
-                      message: 'This is a manifest with multiple files. Provide a filePath to download all files or download individual files using their specific references.',
-                    }, null, 2),
-                  },
-                ],
-              };
-            }
-          } else {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              'try download_text tool instead since the given reference is not a manifest'
-            );
-          }
-        } else {
-        // download_text
-        const args = request.params.arguments as {
-          reference: string;
-          isMemoryTopic?: boolean;
-        };
-
-        if (!args.reference) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            'Missing required parameter: reference'
-          );
-        }
-
-        let textData: string;
-        
-        if (args.isMemoryTopic) {
-          console.log(`[API] Downloading text from Swarm feed with topic: ${args.reference}`);
+        case 'download_text':
+          return downloadText(args as unknown as DownloadTextArgs, this.bee);
           
-          if (!config.bee.feedPrivateKey) {
-            throw new McpError(
-              ErrorCode.InvalidParams,
-              'Feed private key not configured. Set BEE_FEED_PK environment variable.'
-            );
-          }
+        case 'upload_file':
+          return uploadFile(args as unknown as UploadFileArgs, this.bee, this.server.server.transport);
           
-          // Process topic - if not a hex string, hash it
-          let topic = args.reference;
-          if (topic.startsWith('0x')) {
-            topic = topic.slice(2);
-          }
-          const isHexString = /^[0-9a-fA-F]{64}$/.test(topic);
+        case 'upload_folder':
+          return uploadFolder(args as unknown as UploadFolderArgs, this.bee, this.server.server.transport);
           
-          if (!isHexString) {
-            // Hash the topic string using SHA-256
-            const hash = crypto.createHash('sha256').update(args.reference).digest('hex');
-            topic = hash;
-          }
-          
-          // Convert topic string to bytes
-          const topicBytes = hexToBytes(topic);
-          
-          const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
-          const signer = new Wallet(feedPrivateKey);
-          const owner = signer.getAddressString().slice(2);
-          
-          // Use feed reader to get the latest update
-          const feedReader = this.bee.makeFeedReader(topicBytes, owner);
-          const latestUpdate = await feedReader.downloadPayload();
-          // Download the referenced data
-          textData = latestUpdate.payload.toUtf8();
-
-          console.log(`[API] Successfully downloaded feed content with topic: ${args.reference}`);
-        } else {
-          console.log(`[API] Downloading text from Swarm with reference: ${args.reference}`);
-          const data = await this.bee.downloadData(args.reference);
-          textData = data.toUtf8();
-        }
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: textData,
-            },
-          ],
-        }
+        case 'download_folder':
+          return downloadFolder(args as unknown as DownloadFolderArgs, this.bee, this.server.server.transport);
       }
+
+      throw new McpError(
+        ErrorCode.MethodNotFound,
+        `Unknown tool: ${request.params.name}`
+      );
     });
   }
 
