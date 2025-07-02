@@ -87,8 +87,13 @@ class SwarmMCPServer {
             properties: {
               reference: {
                 type: 'string',
-                description: 'Swarm reference hash',
+                description: 'Swarm reference hash or memory/feed topic',
               },
+              isMemoryTopic: {
+                type: 'boolean',
+                description: 'If true, the reference is a memory/feed topic. memory topic is just a label for addressing data',
+                default: false
+              }
             },
             required: ['reference'],
           },
@@ -498,6 +503,7 @@ class SwarmMCPServer {
           // download_text
           const args = request.params.arguments as {
             reference: string;
+            isMemoryTopic?: boolean;
           };
 
           if (!args.reference) {
@@ -507,10 +513,52 @@ class SwarmMCPServer {
             );
           }
 
-          console.log(`[API] Downloading text from Swarm with reference: ${args.reference}`);
           try {
-            const data = await this.bee.downloadData(args.reference);
-            const textData = data.toUtf8();
+            let textData: string;
+            
+            if (args.isMemoryTopic) {
+              console.log(`[API] Downloading text from Swarm feed with topic: ${args.reference}`);
+              
+              if (!config.bee.feedPrivateKey) {
+                throw new McpError(
+                  ErrorCode.InvalidParams,
+                  'Feed private key not configured. Set BEE_FEED_PK environment variable.'
+                );
+              }
+              
+              // Process topic - if not a hex string, hash it
+              let topic = args.reference;
+              if (topic.startsWith('0x')) {
+                topic = topic.slice(2);
+              }
+              const isHexString = /^[0-9a-fA-F]{64}$/.test(topic);
+              
+              if (!isHexString) {
+                // Hash the topic string using SHA-256
+                const hash = crypto.createHash('sha256').update(args.reference).digest('hex');
+                topic = hash;
+              }
+              
+              // Convert topic string to bytes
+              const topicBytes = hexToBytes(topic);
+              
+              const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
+              const signer = new Wallet(feedPrivateKey);
+              const owner = signer.getAddressString().slice(2);
+              
+              // Use feed reader to get the latest update
+              const feedReader = this.bee.makeFeedReader(topicBytes, owner);
+              const latestUpdate = await feedReader.downloadPayload();
+              // Download the referenced data
+              textData = latestUpdate.payload.toUtf8();
+
+              console.log(`[API] Successfully downloaded feed content with topic: ${args.reference}`);
+            } else {
+              console.log(`[API] Downloading text from Swarm with reference: ${args.reference}`);
+              const data = await this.bee.downloadData(args.reference);
+              textData = data.toUtf8();
+            }
+            
             return {
               content: [
                 {
