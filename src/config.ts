@@ -8,6 +8,7 @@ export interface ServerConfig {
 export interface BeeConfig {
   endpoint: string;
   postageBatchId: string;
+  feedPrivateKey?: string;
 }
 
 export interface Config {
@@ -25,6 +26,7 @@ const config: Config = {
   bee: {
     endpoint: process.env.BEE_API_URL || 'https://api.gateway.ethswarm.org',
     postageBatchId: process.env.BEE_BATCH_ID || '0000000000000000000000000000000000000000000000000000000000000000', // Default postage batch ID
+    feedPrivateKey: process.env.BEE_FEED_PK,
   }
 };
 

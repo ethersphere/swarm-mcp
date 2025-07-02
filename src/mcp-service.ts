@@ -4,11 +4,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from '@modelcontextprotocol/sdk/types.js';
-import { Bee, MantarayNode } from '@ethersphere/bee-js';
+import { Bee, MantarayNode, Utils } from '@ethersphere/bee-js';
 import config from './config';
 import fs from 'fs';
 import { promisify } from 'util';
 import path from 'path';
+import crypto from 'crypto';
+import { Wallet } from '@ethereumjs/wallet';
+import { hexToBytes } from './utils';
 
 /**
  * Swarm MCP Server class
@@ -65,6 +68,12 @@ class SwarmMCPServer {
                 '(higher values provide better fault tolerance but increase storage overhead)'+
                 '0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid',
                 default: 0
+              },
+              memoryTopic: {
+                type: 'string',
+                description: 'If provided, uploads the data to a feed with this topic.'+
+                'It is the label of the memory that can be used later to retrieve the data instead of its content hash.'+
+                'If not a hex string, it will be hashed to create a feed topic',
               },
             },
             required: ['data'],
@@ -167,6 +176,7 @@ class SwarmMCPServer {
           const args = request.params.arguments as {
             data: string;
             redundancyLevel?: number;
+            memoryTopic?: string;
           };
 
           if (!args.data) {
@@ -182,20 +192,69 @@ class SwarmMCPServer {
             const redundancyLevel = args.redundancyLevel;
             const options = redundancyLevel ? { redundancyLevel } : undefined;
             
-            const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData, options);
-            
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify({
-                    reference: result.reference.toString(),
-                    url: config.bee.endpoint + '/bytes/' + result.reference.toString(),
-                    message: 'Data successfully uploaded to Swarm',
-                  }, null, 2),
-                },
-              ],
-            };
+            if (!args.memoryTopic) {
+              const result = await this.bee.uploadData(config.bee.postageBatchId, binaryData, options);
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      reference: result.reference.toString(),
+                      url: config.bee.endpoint + '/bytes/' + result.reference.toString(),
+                      message: 'Data successfully uploaded to Swarm',
+                    }, null, 2),
+                  },
+                ],
+              };
+            } else {
+              // Feed upload if memoryTopic is specified
+              if (!config.bee.feedPrivateKey) {
+                throw new McpError(
+                  ErrorCode.InvalidParams,
+                  'Feed private key not configured. Set BEE_FEED_PK environment variable.'
+                );
+              }
+              
+              // Process topic - if not a hex string, hash it
+              let topic = args.memoryTopic;
+              if (topic.startsWith('0x')) {
+                topic = topic.slice(2);
+              }
+              const isHexString = /^[0-9a-fA-F]{64}$/.test(args.memoryTopic);
+              
+              if (!isHexString) {
+                // Hash the topic string using SHA-256
+                const hash = crypto.createHash('sha256').update(args.memoryTopic).digest('hex');
+                topic = hash;
+              }
+              
+              // Convert topic string to bytes
+              const topicBytes = hexToBytes(topic);
+
+              const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
+              const signer = new Wallet(feedPrivateKey);
+              const owner = signer.getAddressString().slice(2);
+              const feedWriter = this.bee.makeFeedWriter(topicBytes, feedPrivateKey);
+              
+              const result = await feedWriter.uploadPayload(config.bee.postageBatchId, binaryData);
+              const reference = result.reference.toString();
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      reference,
+                      topicString: args.memoryTopic,
+                      topic: topic,
+                      feedUrl: `${config.bee.endpoint}/feeds/${owner}/${topic}`,
+                      message: 'Data successfully uploaded to Swarm and linked to feed',
+                    }, null, 2),
+                  },
+                ],
+              };
+            }
           } catch (error) {
             if (error instanceof Error) {
               throw new Error(`Error uploading to Swarm: ${error.message}`);

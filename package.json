@@ -14,6 +14,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@ethereumjs/wallet": "^10.0.0",
     "@ethersphere/bee-js": "^9.4.1",
     "@modelcontextprotocol/sdk": "^1.13.2"
   },
