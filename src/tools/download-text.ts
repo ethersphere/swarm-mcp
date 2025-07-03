@@ -12,6 +12,7 @@ import { hexToBytes, ToolResponse } from '../utils';
 export interface DownloadTextArgs {
   reference: string;
   isMemoryTopic?: boolean;
+  owner?: string;
 }
 
 export async function downloadText(args: DownloadTextArgs, bee: Bee): Promise<ToolResponse> {
@@ -22,9 +23,9 @@ export async function downloadText(args: DownloadTextArgs, bee: Bee): Promise<To
     );
   }
 
+  const refNotSwarmHash = args.reference.length !== 64 && args.reference.length !== 66
   let textData: string;
-  
-  if (args.isMemoryTopic) {
+  if (args.isMemoryTopic || refNotSwarmHash) {
     console.log(`[API] Downloading text from Swarm feed with topic: ${args.reference}`);
     
     if (!config.bee.feedPrivateKey) {
@@ -50,9 +51,24 @@ export async function downloadText(args: DownloadTextArgs, bee: Bee): Promise<To
     // Convert topic string to bytes
     const topicBytes = hexToBytes(topic);
     
-    const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
-    const signer = new Wallet(feedPrivateKey);
-    const owner = signer.getAddressString().slice(2);
+    let owner = args.owner;
+    if (!owner) {
+      const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
+      const signer = new Wallet(feedPrivateKey);
+      owner = signer.getAddressString().slice(2);
+    } else {
+      //sanitize owner
+      if (owner.startsWith('0x')) {
+        owner = owner.slice(2);
+      }
+      if (owner.length !== 40) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          'Owner must be a valid Ethereum address'
+        );
+        // TODO later support ENS
+      }
+    }
     
     // Use feed reader to get the latest update
     const feedReader = bee.makeFeedReader(topicBytes, owner);

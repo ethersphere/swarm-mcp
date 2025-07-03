@@ -91,8 +91,12 @@ class SwarmMCPServer {
               },
               isMemoryTopic: {
                 type: 'boolean',
-                description: 'If true, the reference is a memory/feed topic. memory topic is just a label for addressing data',
+                description: 'When accessing memory or feed related data, this parameter must be true',
                 default: false
+              },
+              owner: {
+                type: 'string',
+                description: 'when accessing external memory or feed, ethereum address of the owner must be set',
               }
             },
             required: ['reference'],
