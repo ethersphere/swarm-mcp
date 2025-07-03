@@ -31,18 +31,22 @@ Uploads text data to the Swarm network.
   - 2: strong
   - 3: insane
   - 4: paranoid
+- `memoryTopic`: (Optional) If provided, uploads the data to a Swarm Feed with this topic (requires `BEE_FEED_PK` in config)
 
 **Returns:**
-- `reference`: Swarm reference hash for the uploaded data
+- `reference`: Swarm reference hash for the uploaded data or feed
 - `url`: URL to access the data via Bee API
 - `message`: Status message
+- `topicString`, `topic`, `feedUrl`: (If using `memoryTopic`) Feed details
 
 ### `download_text`
 
 Retrieves text data from the Swarm network. Should be used when the data is known to be text format.
 
 **Parameters:**
-- `reference`: Swarm reference hash
+- `reference`: Swarm reference hash or feed topic
+- `isMemoryTopic`: (Optional, boolean) Set true to retrieve from a Swarm feed
+- `owner`: (Optional) Ethereum address of the feed owner
 
 **Returns:**
 - Retrieved text data
