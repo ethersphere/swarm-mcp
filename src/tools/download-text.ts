@@ -26,7 +26,7 @@ export async function downloadText(args: DownloadTextArgs, bee: Bee): Promise<To
   const refNotSwarmHash = args.reference.length !== 64 && args.reference.length !== 66
   let textData: string;
   if (args.isMemoryTopic || refNotSwarmHash) {
-    console.log(`[API] Downloading text from Swarm feed with topic: ${args.reference}`);
+    console.error(`[API] Downloading text from Swarm feed with topic: ${args.reference}`);
     
     if (!config.bee.feedPrivateKey) {
       throw new McpError(
@@ -76,9 +76,9 @@ export async function downloadText(args: DownloadTextArgs, bee: Bee): Promise<To
     // Download the referenced data
     textData = latestUpdate.payload.toUtf8();
 
-    console.log(`[API] Successfully downloaded feed content with topic: ${args.reference}`);
+    console.error(`[API] Successfully downloaded feed content with topic: ${args.reference}`);
   } else {
-    console.log(`[API] Downloading text from Swarm with reference: ${args.reference}`);
+    console.error(`[API] Downloading text from Swarm with reference: ${args.reference}`);
     const data = await bee.downloadData(args.reference);
     textData = data.toUtf8();
   }
