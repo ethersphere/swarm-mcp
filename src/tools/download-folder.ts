@@ -29,7 +29,7 @@ export async function downloadFolder(args: DownloadFolderArgs, bee: Bee, transpo
     );
   }
 
-  console.log(`[API] Downloading folder from Swarm with reference: ${args.reference}`);
+  console.error(`[API] Downloading folder from Swarm with reference: ${args.reference}`);
 
   // Check if the reference is a manifest
   let isManifest = false;

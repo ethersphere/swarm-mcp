@@ -21,7 +21,7 @@ class SwarmMCPServer {
   private bee: Bee;
 
   constructor() {
-    console.log('[Setup] Initializing Swarm MCP server...');
+    console.error('[Setup] Initializing Swarm MCP server...');
 
     // Initialize Bee client with the configured endpoint
     this.bee = new Bee(config.bee.endpoint);
@@ -204,7 +204,7 @@ class SwarmMCPServer {
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.log('Swarm MCP server running on stdio');
+    console.error('Swarm MCP server running on stdio');
   }
 }
 
