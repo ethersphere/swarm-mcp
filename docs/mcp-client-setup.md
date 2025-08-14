@@ -13,6 +13,7 @@ applications.
 - [Setting up MCP Clients](#setting-up-mcp-clients)
     - [Claude Desktop](#claude-desktop)
     - [Windsurf](#windsurf)
+    - [Cursor](#cursor)
 
 ## Building the Project
 
@@ -100,12 +101,12 @@ The MCP server configuration is defined in a JSON object with the following stru
     - Example: "http://localhost:1633"
 2. **BEE_BATCH_ID** (string, optional)
     - The ID of the postage stamp batch to use for uploads
-    - If the batch ID is not provided, the Swarm Gateway will use its own postage stamp batch
+    - If the batch ID is not provided, the Swarm Gateway defaults to using its own postage stamp batch
     - If a custom _BEE_API_URL_ is provided, this field becomes **required**
     - Example: "batch-123"
 3. **BEE_FEED_PK** (string, optional)
     - The private key of the Swarm Feed to use
-    - If the private key is not provided, the Swarm Feed related functionalities **will not work**
+    - If the private key is not provided, functionalities related to the Swarm Feed **will not work**
 
 ## Setting up MCP Clients
 
@@ -117,13 +118,13 @@ Claude Desktop is a desktop application that can be used to interact with Claude
 
 1. Download and install [Claude Desktop](https://claude.ai/download)
 2. Open Claude Desktop
-3. Click "Get Stated" and then do Sign In (note: a free account is sufficient)
+3. Click "Get Started" and then do Sign In (note: a free account is sufficient)
 4. Under your profile, access "Settings"
 5. Go to the "Developer" tab and see the "Local MCP servers" section
 6. Click "Edit Config"
-7. A window locating the _claude_desktop_config.json_ will pop-up
-8. Open _claude_desktop_config.json_ for editing
-9. Add the following to _claude_desktop_config.json_:
+7. A file explorer window will open, locating the `claude_desktop_config.json` file
+8. Open `claude_desktop_config.json` for editing
+9. Add the following to `claude_desktop_config.json`:
 
 ```json
 {
@@ -140,7 +141,7 @@ Claude Desktop is a desktop application that can be used to interact with Claude
 }
 ```
 
-10. Save the _claude_desktop_config.json_ file
+10. Save the `claude_desktop_config.json` file
 11. Restart Claude Desktop
 
 #### Verify MCP is running
@@ -213,7 +214,7 @@ under [Windsurf](#windsurf))
 2. Open "Cascade" (using the icon at the top right)
 3. Open the "MCP servers" (using the hammer icon beneath the "Ask anything" input)
 4. The "Swarm" MCP should be listed there
-5. It should be hihglighed with a green status if it is operational (and enabled)
+5. It should be highlighted with a green status if it is operational (and enabled)
 
 _Note_: You can see the list of (enabled) MCP tools if you click on the "Swarm" MCP server name (the number of enabled
 tools is also visible)
@@ -225,7 +226,62 @@ tools is also visible)
 3. Select the "Swarm" MCP from the list
 4. You can use the toggles to disable/enable individual tools to be available to the AI model
 5. You can set the whole of the MCP disabled with the toggle opposite to the "Swarm" MCP name (displayed with an "
-   Enabled" tag when enabled)
+   Enabled" tag when it is enabled)
 
 _Note_: You can view which individual tools are enabled on the "MCP Servers" tab of "Cascade" too (see 'Verify MCP is
 running' under [Windsurf](#windsurf))
+
+## Cursor
+
+[Cursor](https://cursor.com/home) is a code editor that provides AI-powered coding assistance and collaborative
+features.
+
+#### Setup
+
+1. Download and install [Cursor](https://cursor.com/downloads)
+2. Open Cursor
+3. Sign in to Cursor (note: a free account is sufficient)
+4. Open Settings > Cursor Settings
+5. Go to the "Tools & Integrations" tab
+6. In the "MCP Tools" section click on "New MCP Server"
+7. Add the following to the `mcp.json` config:
+
+```json
+{
+  "mcpServers": {
+    "Swarm": {
+      "command": "npx",
+      "args": [
+        "/path/to/your/swarm-mcp/dist/index.js"
+      ],
+      "env": {
+      }
+    }
+  }
+}
+```
+
+#### Verify MCP is running
+
+1. Open Cursor
+2. Open Settings > Cursor Settings
+3. Go to the "Tools & Integrations" tab
+4. In the "MCP Tools" section locate the "Swarm" MCP
+5. Check the status indicator next to the "Swarm" MCP name (it should be green if operational)
+
+#### Controlling accessibility of MCP tools
+
+1. Open Cursor
+2. Open Settings > Cursor Settings
+3. Go to the "Tools & Integrations" tab
+4. In the "MCP Tools" section locate the "Swarm" MCP
+5. Click on "# tool enabled" below the "Swarm" MCP name
+6. You can use the individual tool names as toggles to disable/enable them to be available to the AI model
+
+### Troubleshooting
+
+You can refer to the [Cursor documentation](https://docs.cursor.com/en/welcome) for more information on setting up and
+using MCP tools in Cursor.
+
+To check if the AI model you intend to use supports tools, look at
+the [Available models in Cursor](https://docs.cursor.com/en/models).

@@ -1,8 +1,9 @@
 # Swarm MCP Prompt Examples
 
 This document provides example prompts for interacting with the Swarm MCP (Model Context Protocol) through various MCP
-clients like [Claude Desktop](https://claude.ai/download) and [Windsurf](https://windsurf.com/download). These examples
-demonstrate how to effectively use the Swarm MCP tools for different scenarios.
+clients like [Claude Desktop](https://claude.ai/download), [Windsurf](https://windsurf.com/download)
+and [Cursor](https://cursor.com/downloads). These examples demonstrate how to effectively use the Swarm MCP tools for
+different scenarios.
 
 ## Table of Contents
 
