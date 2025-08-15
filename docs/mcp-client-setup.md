@@ -211,8 +211,8 @@ under [Windsurf](#windsurf))
 #### Verify MCP is running
 
 1. Open Windsurf
-2. Open "Cascade" (using the icon at the top right)
-3. Open the "MCP servers" (using the hammer icon beneath the "Ask anything" input)
+2. Open "Cascade" (using the icon in the window header)
+3. Open "Customizations" (using the box icon at the top right)
 4. The "Swarm" MCP should be listed there
 5. It should be highlighted with a green status if it is operational (and enabled)
 
@@ -228,7 +228,7 @@ tools is also visible)
 5. You can set the whole of the MCP disabled with the toggle opposite to the "Swarm" MCP name (displayed with an "
    Enabled" tag when it is enabled)
 
-_Note_: You can view which individual tools are enabled on the "MCP Servers" tab of "Cascade" too (see 'Verify MCP is
+_Note_: You can access the list of enabled tools from the "Customizations" menu of "Cascade" too (see 'Verify MCP is
 running' under [Windsurf](#windsurf))
 
 ## Cursor
@@ -260,6 +260,8 @@ features.
   }
 }
 ```
+
+8. Save the `mcp.json` file
 
 #### Verify MCP is running
 
