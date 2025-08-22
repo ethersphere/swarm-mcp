@@ -2,7 +2,6 @@
  * MCP Service implementation for handling blob data operations with Bee (Swarm)
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { Bee } from '@ethersphere/bee-js';
 import config from './config';
@@ -16,9 +15,9 @@ import { downloadFolder, DownloadFolderArgs } from './tools/download-folder';
 /**
  * Swarm MCP Server class
  */
-class SwarmMCPServer {
-  private server: McpServer;
-  private bee: Bee;
+export class SwarmMCPServer {
+  public readonly server: McpServer;
+  private readonly bee: Bee;
 
   constructor() {
     console.error('[Setup] Initializing Swarm MCP server...');
@@ -201,11 +200,5 @@ class SwarmMCPServer {
     });
   }
 
-  async run() {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error('Swarm MCP server running on stdio');
-  }
 }
 
-export default new SwarmMCPServer();

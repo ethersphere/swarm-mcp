@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 
-import swarmMCPServer from './mcp-service';
+import { SwarmMCPServer } from './mcp-service';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-// Run the Swarm MCP Server
-console.error('Starting Swarm MCP Server...');
-swarmMCPServer.run().catch((error) => {
+async function main() {
+  console.error('Starting Swarm MCP Server on stdio...');
+  const swarmMCPServer = new SwarmMCPServer();
+  const transport = new StdioServerTransport();
+  await swarmMCPServer.server.connect(transport);
+  console.error('Swarm MCP Server running on stdio');
+}
+
+main().catch((error) => {
   console.error('Failed to start Swarm MCP Server:', error);
   process.exit(1);
 });
