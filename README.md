@@ -171,9 +171,8 @@ To connect this MCP server to Claude Desktop:
    {
      "mcpServers": {
        "swarm-mcp": {
-         "command": "npm",
-         "args": ["run", "serve"],
-         "cwd": "/path/to/your/swarm-mcp",
+         "command": "node",
+         "args": ["/path/to/your/swarm-mcp/dist/index.js"],
          "env": {
            "BEE_API_URL": "https://api.gateway.ethswarm.org",
            "BEE_BATCH_ID": "0000000000000000000000000000000000000000000000000000000000000000"
