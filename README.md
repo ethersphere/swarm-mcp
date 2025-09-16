@@ -146,9 +146,67 @@ npm run build
 npm start
 ```
 
-## Using with MCP Clients
+## Using with Claude Desktop
 
-The Swarm MCP server communicates via standard input/output (stdio) following the MCP protocol. To use it with MCP clients:
+### Setup
+
+To connect this MCP server to Claude Desktop:
+
+1. **Build the project:**
+   ```bash
+   npm run build
+   ```
+
+2. **Configure Claude Desktop:**
+
+   Edit your Claude Desktop configuration file:
+
+   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+   Add the following configuration (replace `/path/to/your/swarm-mcp/` with the actual path):
+
+   ```json
+   {
+     "mcpServers": {
+       "swarm-mcp": {
+         "command": "npm",
+         "args": ["run", "serve"],
+         "cwd": "/path/to/your/swarm-mcp",
+         "env": {
+           "BEE_API_URL": "http://localhost:1633",
+           "BEE_BATCH_ID": "0000000000000000000000000000000000000000000000000000000000000000"
+         }
+       }
+     }
+   }
+   ```
+
+3. **Restart Claude Desktop** for the changes to take effect.
+
+### Environment Variables
+
+You can customize these environment variables in the configuration:
+
+- **`BEE_API_URL`**: Bee node endpoint (default: `https://api.gateway.ethswarm.org`)
+  - Use `http://localhost:1633` for a local Bee node
+  - Use `https://api.gateway.ethswarm.org` for the public gateway
+- **`BEE_BATCH_ID`**: Postage batch ID for uploads (the default is a placeholder for testing)
+- **`BEE_FEED_PK`**: Private key for Swarm feeds (optional, for memory topics)
+
+### Available Tools
+
+Once configured, you'll have access to these tools in Claude Desktop:
+
+- **`upload_text`**: Upload text data to Swarm
+- **`download_text`**: Retrieve text data from Swarm
+- **`upload_file`**: Upload files to Swarm
+- **`upload_folder`**: Upload folders to Swarm
+- **`download_folder`**: Download folders/files from Swarm
+
+## Using with Other MCP Clients
+
+The Swarm MCP server communicates via standard input/output (stdio) following the MCP protocol. To use it with other MCP clients:
 
 1. Start the server
 2. Connect your MCP-compatible client to the server
