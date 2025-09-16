@@ -152,8 +152,9 @@ npm start
 
 To connect this MCP server to Claude Desktop:
 
-1. **Build the project:**
+1. **Install dependencies and build the project:**
    ```bash
+   npm ci
    npm run build
    ```
 
@@ -174,7 +175,7 @@ To connect this MCP server to Claude Desktop:
          "args": ["run", "serve"],
          "cwd": "/path/to/your/swarm-mcp",
          "env": {
-           "BEE_API_URL": "http://localhost:1633",
+           "BEE_API_URL": "https://api.gateway.ethswarm.org",
            "BEE_BATCH_ID": "0000000000000000000000000000000000000000000000000000000000000000"
          }
        }
