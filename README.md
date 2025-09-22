@@ -119,37 +119,160 @@ You can customize:
 
 Modify these values as needed for your environment.
 
-## Running the Server
+## Running the Server Locally
 
-### Development Mode
+You can run the server locally in two different modes: `stdio` or `web`.
 
-Run the server with hot reloading for development:
+### Stdio (Default)
 
+This is the standard mode for direct integration with MCP clients that manage their own subprocesses.
+
+**Development (with hot-reloading):**
 ```bash
 npm run dev
 ```
 
-### Quick Start (without building)
-
-Run the server directly with ts-node:
-
+**Development (without building):**
 ```bash
 npm run serve
 ```
 
-### Production Build
-
-Build and run optimized production version:
-
+**Production:**
+First, build the project:
 ```bash
 npm run build
-npm start
 ```
+Then, run the server:
+```bash
+npm start
+# or
+npm run start:stdio
+```
+
+### Web Server (HTTP + SSE)
+
+This runs the server as a web service on port 3000, with endpoints for both HTTP and SSE.
+
+**Development (without building):**
+```bash
+npm run serve:web
+```
+
+**Production:**
+First, build the project:
+```bash
+npm run build
+```
+Then, run the server:
+```bash
+npm run start:web
+```
+
+## Docker
+
+This project includes a Dockerfile to run the Swarm MCP server as a containerized service, with both HTTP and SSE transports.
+
+- `Dockerfile`: Builds a single image for the server, which runs on port 3000.
+
+### Building the Docker Image
+
+To build the Docker image, run the following command from the project root:
+
+```bash
+docker build -t swarm-mcp .
+```
+
+### Running the Docker Container
+
+To run the server, use the `docker run` command. The container exposes port `3000` for both HTTP and SSE.
+
+```bash
+docker run --name swarm-mcp -p 3000:3000 swarm-mcp
+```
+
+#### Configuration with Environment Variables
+
+To configure the server, pass environment variables to the container using the `-e` flag. This is necessary to connect to your own Bee node or use features like Swarm Feeds.
+
+```bash
+docker run -p 3000:3000 \
+  -e BEE_API_URL="http://localhost:1633" \
+  -e BEE_BATCH_ID="your_batch_id_here" \
+  -e BEE_FEED_PK="your_private_key_here" \
+  swarm-mcp
+```
+
+### Testing with cURL
+
+You can test if the servers are running correctly by sending a `tools/list` request using `curl`.
+
+#### HTTP Server
+
+This command asks the server to list all available tools and expects a single JSON response.
+
+```bash
+curl -X POST http://localhost:3000/mcp \
+-H "Content-Type: application/json" \
+-H "Accept: application/json, text/event-stream" \
+-d '{
+  "jsonrpc": "2.0",
+  "method": "tools/list",
+  "id": 1
+}'
+```
+
+_Note:_ `text/event-stream` in the accept header is required for the HTTP server, even to return a JSON response.
+
+A successful response will be a JSON object containing a list of the server's tools.
+
+#### SSE Server
+
+Interacting with the SSE server is a two-step process. First, you establish a connection to get a `sessionId`, and then you use that ID to send messages.
+
+**Step 1: Open the SSE connection**
+
+Run the following command in a terminal. It will connect to the server and wait for events. The server will send back a `sessionId` which you will need for the next step.
+
+```bash
+# In Terminal 1
+curl -N -H "Accept:text/event-stream" http://localhost:3000/sse
+```
+
+The output will contain the session ID, for example:
+`id: "<your-session-id>"`
+
+**Step 2: Send a message**
+
+In a second terminal, use the `sessionId` from Step 1 to send a request. Replace `<your-session-id>` with the actual ID.
+
+```bash
+# In Terminal 2
+curl -X POST -H "Content-Type: application/json" \
+-d '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":2}' \
+"http://localhost:3000/message?sessionId=<your-session-id>"
+```
+
+The response will appear in Terminal 1.
 
 ## Using with MCP Clients
 
-The Swarm MCP server communicates via standard input/output (stdio) following the MCP protocol. To use it with MCP clients:
+The server supports two connection methods:
 
-1. Start the server
-2. Connect your MCP-compatible client to the server
-3. Use the provided MCP tools (`upload_text`, `download_text`, `upload_file`, `upload_folder`, `download_folder`)
+### 1. Web Connection (Docker)
+
+When running the server in Docker, it operates as a web service with both HTTP and SSE endpoints. To connect your MCP client, you must use one that supports connecting to a remote server via URL.
+
+- **HTTP Server URL**: `http://localhost:3000/mcp`
+- **SSE Server URL**: `http://localhost:3000/sse`
+
+In your client's settings, add a new remote/custom connector and provide the appropriate URL.
+
+_**Note on supported features**_: Functionalities that require direct access to the local file system are not available in web mode. This includes using local paths for uploads (e.g., `upload_folder` or `upload_file` with `isPath: true`) and downloading directly to a file (e.g., `download_folder` with `filePath`). These features are only supported when running the server in `stdio` mode.
+
+### 2. Stdio Connection (Local)
+
+For local development or with clients that manage their own server subprocesses, you can run the server directly in `stdio` mode.
+
+For detailed instructions on how to configure your MCP client for stdio, please refer to the [Swarm MCP Client Setup guide](./docs/mcp-client-setup.md).
+
+To run the server in this mode, see the commands under the **Stdio (Default)** section above.
