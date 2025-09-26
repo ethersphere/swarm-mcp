@@ -46,13 +46,25 @@ export async function uploadFolder(args: UploadFolderArgs, bee: Bee, transport: 
   if (redundancyLevel) {
     options.redundancyLevel = redundancyLevel;
   }
-  
-  // Always use deferred uploads for folders and create a tag for progress tracking
-  const tag = await bee.createTag();
-  options.tag = tag.uid;
-  options.deferred = true;
-  
-  // Start the deferred upload
+
+  // TODO check tag endpoint availability - gateway mode
+  const deferred = true;
+  options.deferred = deferred;
+  let message = 'Folder successfully uploaded to Swarm';
+
+  let tagId: number | undefined = undefined;
+  if (deferred) {
+    try {
+      const tag = await bee.createTag();
+      tagId = tag.uid;
+      options.tag = tag.uid;
+      message = 'Folder upload started in deferred mode. Use query_upload_progress to track progress.';
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+      options.deferred = false;
+    }
+  }
+
   const result = await bee.uploadFilesFromDirectory(config.bee.postageBatchId, args.folderPath, options);
   
   return {
@@ -62,9 +74,8 @@ export async function uploadFolder(args: UploadFolderArgs, bee: Bee, transport: 
         text: JSON.stringify({
           reference: result.reference.toString(),
           url: config.bee.endpoint + '/bzz/' + result.reference.toString(),
-          tagId: tag.uid.toString(),
-          message: 'Folder upload started in deferred mode. Use query_upload_progress to track progress.',
-          deferred: true,
+          message,
+          tagId,
         }, null, 2),
       },
     ],

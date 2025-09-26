@@ -53,6 +53,7 @@ export async function uploadFile(args: UploadFileArgs, bee: Bee, transport: any)
   const redundancyLevel = args.redundancyLevel;
   const options: FileUploadOptions = {};
 
+  // TODO check tag endpoint availability - gateway mode
   const deferred = binaryData.length > 5 * 1024 * 1024;
   options.deferred = deferred;
   options.redundancyLevel = redundancyLevel;
