@@ -11,6 +11,7 @@ import { downloadText, DownloadTextArgs } from './tools/download-text';
 import { uploadFile, UploadFileArgs } from './tools/upload-file';
 import { uploadFolder, UploadFolderArgs } from './tools/upload-folder';
 import { downloadFolder, DownloadFolderArgs } from './tools/download-folder';
+import { queryUploadProgress, QueryUploadProgressArgs } from './tools/query-upload-progress';
 
 /**
  * Swarm MCP Server class
@@ -168,6 +169,20 @@ export class SwarmMCPServer {
             required: ['reference'],
           },
         },
+        {
+          name: 'query_upload_progress',
+          description: 'Query upload progress for a specific upload session identified with the returned Tag ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              tagId: {
+                type: 'string',
+                description: 'Tag ID returned by upload_file and upload_folder tools to track upload progress',
+              },
+            },
+            required: ['tagId'],
+          },
+        },
       ],
     }));
 
@@ -191,6 +206,9 @@ export class SwarmMCPServer {
           
         case 'download_folder':
           return downloadFolder(args as unknown as DownloadFolderArgs, this.bee, this.server.server.transport);
+        
+        case 'query_upload_progress':
+          return queryUploadProgress(args as unknown as QueryUploadProgressArgs, this.bee, this.server.server.transport);
       }
 
       throw new McpError(
