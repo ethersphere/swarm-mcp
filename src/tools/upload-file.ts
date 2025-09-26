@@ -3,7 +3,7 @@
  * Upload a file to Swarm
  */
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { Bee } from '@ethersphere/bee-js';
+import { Bee, FileUploadOptions } from '@ethersphere/bee-js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import fs from 'fs';
 import { promisify } from 'util';
@@ -50,7 +50,25 @@ export async function uploadFile(args: UploadFileArgs, bee: Bee, transport: any)
     binaryData = Buffer.from(args.data, 'base64');
   }
   
-  const result = await bee.uploadFile(config.bee.postageBatchId, binaryData, name);
+  const redundancyLevel = args.redundancyLevel;
+  const options: FileUploadOptions = {};
+
+  const deferred = binaryData.length > 5 * 1024 * 1024;
+  options.deferred = deferred;
+  options.redundancyLevel = redundancyLevel;
+  
+  let message = 'File successfully uploaded to Swarm';
+  let tagId: string | undefined = undefined;
+  // Create tag for deferred uploads or when explicitly requested
+  if (deferred) {
+    const tag = await bee.createTag();
+    options.tag = tag.uid;
+    tagId = tag.uid.toString();
+    message = 'File upload started in deferred mode. Use query_upload_progress to track progress.';
+  }
+    
+  // Start the deferred upload
+  const result = await bee.uploadFile(config.bee.postageBatchId, binaryData, name, options);
   
   return {
     content: [
@@ -59,7 +77,8 @@ export async function uploadFile(args: UploadFileArgs, bee: Bee, transport: any)
         text: JSON.stringify({
           reference: result.reference.toString(),
           url: config.bee.endpoint + '/bzz/' + result.reference.toString(),
-          message: 'File successfully uploaded to Swarm',
+          message,
+          tagId,
         }, null, 2),
       },
     ],
