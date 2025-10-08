@@ -16,6 +16,7 @@ import { downloadText, DownloadTextArgs } from "./tools/download-text";
 import { uploadFile, UploadFileArgs } from "./tools/upload-file";
 import { uploadFolder, UploadFolderArgs } from "./tools/upload-folder";
 import { downloadFolder, DownloadFolderArgs } from "./tools/download-folder";
+import { queryUploadProgress, QueryUploadProgressArgs } from './tools/query-upload-progress';
 import { listPostageStamps } from "./tools/list-postage-stamps";
 import { getPostageStamp } from "./tools/get_postage_stamp";
 import { ListPostageStampsArgs } from "./tools/list-postage-stamps/models";
@@ -332,6 +333,20 @@ export class SwarmMCPServer {
             required: ["postageBatchId"],
           },
         },
+        {
+          name: 'query_upload_progress',
+          description: 'Query upload progress for a specific upload session identified with the returned Tag ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              tagId: {
+                type: 'string',
+                description: 'Tag ID returned by upload_file and upload_folder tools to track upload progress',
+              },
+            },
+            required: ['tagId'],
+          },
+        },
       ],
     }));
 
@@ -369,6 +384,9 @@ export class SwarmMCPServer {
               this.bee,
               this.server.server.transport
             );
+            
+          case 'query_upload_progress':
+            return queryUploadProgress(args as unknown as QueryUploadProgressArgs, this.bee, this.server.server.transport);
 
           case "list_postage_stamps":
             return listPostageStamps(
