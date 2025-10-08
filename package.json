@@ -18,7 +18,7 @@
   "description": "",
   "dependencies": {
     "@ethereumjs/wallet": "^10.0.0",
-    "@ethersphere/bee-js": "^9.4.1",
+    "@ethersphere/bee-js": "^10.0.0",
     "@modelcontextprotocol/sdk": "^1.13.2",
     "cors": "^2.8.5",
     "express": "^5.1.0"
