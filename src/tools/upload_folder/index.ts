@@ -57,11 +57,11 @@ export async function uploadFolder(
   options.deferred = deferred;
   let message = "Folder successfully uploaded to Swarm";
 
-  let tagId: number | undefined = undefined;
+  let tagId: string | undefined = undefined;
   if (deferred) {
     try {
       const tag = await bee.createTag();
-      tagId = tag.uid;
+      tagId = tag.uid.toString();
       options.tag = tag.uid;
       message =
         "Folder upload started in deferred mode. Use query_upload_progress to track progress.";

@@ -88,7 +88,7 @@ Uploads a folder to the Swarm network.
 
 ### `download_files`
 
-Downloads folder, files, or binary data from a Swarm reference. This tool should be prioritized over `download_data` if there is no assumption about the data type.
+Downloads folder, files from a Swarm reference. This tool should be prioritized over `download_data` if there is no assumption about the data type.
 
 **Parameters:**
 

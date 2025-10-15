@@ -355,7 +355,7 @@ export class SwarmMCPServer {
         {
           name: "download_files",
           description:
-            "Download folder, files or binary data from a Swarm reference and save to file path or return file list of the reference " +
+            "Download folder, files from a Swarm reference and save to file path or return file list of the reference " +
             "prioritizes this tool over download_data if there is no assumption about the data type",
           inputSchema: {
             type: "object",

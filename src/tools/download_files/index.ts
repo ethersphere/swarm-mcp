@@ -1,6 +1,6 @@
 /**
  * MCP Tool: download_files
- * Download folder, files or binary data from a Swarm reference
+ * Download folder, files from a Swarm reference
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, MantarayNode } from "@ethersphere/bee-js";
@@ -55,21 +55,32 @@ export async function downloadFiles(
 
       const nodes = node!.collect();
 
-      // Download each node
-      for (const node of nodes) {
-        const parsedPath = path.parse(node.fullPathString);
-        const nodeDestFolder = path.join(destinationFolder, parsedPath.dir);
-
-        // Create subdirectories if necessary
-        if (!fs.existsSync(nodeDestFolder)) {
-          await promisify(fs.mkdir)(nodeDestFolder, { recursive: true });
-        }
-
+      if (nodes.length === 1) {
+        const node = nodes[0];
         const data = await bee.downloadData(node.targetAddress);
         await promisify(fs.writeFile)(
-          path.join(destinationFolder, node.fullPathString),
+          path.join(
+            destinationFolder,
+            node.fullPathString.split("\\").slice(-1)[0]
+          ),
           data.toUint8Array()
         );
+      } else {
+        // Download each node
+        for (const node of nodes) {
+          const parsedPath = path.parse(node.fullPathString);
+          const nodeDestFolder = path.join(destinationFolder, parsedPath.dir);
+          // Create subdirectories if necessary
+          if (!fs.existsSync(nodeDestFolder)) {
+            await promisify(fs.mkdir)(nodeDestFolder, { recursive: true });
+          }
+
+          const data = await bee.downloadData(node.targetAddress);
+          await promisify(fs.writeFile)(
+            path.join(destinationFolder, node.fullPathString),
+            data.toUint8Array()
+          );
+        }
       }
 
       return {
