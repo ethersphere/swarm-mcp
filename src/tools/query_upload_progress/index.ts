@@ -2,13 +2,11 @@
  * MCP Tool: query_upload_progress
  * Query upload progress for a specific upload session identified with the Tag ID
  */
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { Bee } from '@ethersphere/bee-js';
-import { ToolResponse } from '../utils';
-
-export interface QueryUploadProgressArgs {
-  tagId: string;
-}
+import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { Bee } from "@ethersphere/bee-js";
+import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
+import { QueryUploadProgressArgs } from "./models";
+import { GATEWAY_TAG_ERROR_MESSAGE } from "../../constants";
 
 // The third argument (transport) is accepted for parity with other tools but unused here
 export async function queryUploadProgress(
@@ -17,15 +15,19 @@ export async function queryUploadProgress(
   _transport?: unknown
 ): Promise<ToolResponse> {
   if (!args?.tagId) {
-    throw new McpError(ErrorCode.InvalidParams, 'Missing required parameter: tagId');
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      "Missing required parameter: tagId"
+    );
   }
 
   const tagUid = Number.parseInt(args.tagId, 10);
   if (Number.isNaN(tagUid)) {
-    throw new McpError(ErrorCode.InvalidParams, 'Invalid tagId format. Expected a numeric string.');
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      "Invalid tagId format. Expected a numeric string."
+    );
   }
-
-  // TODO check tag endpoint availability - gateway mode
 
   try {
     const tag = await bee.retrieveTag(tagUid);
@@ -36,7 +38,8 @@ export async function queryUploadProgress(
     const total = tag.split ?? 0;
     const startedAt = tag.startedAt;
 
-    const processedPercentage = total > 0 ? Math.round((processed / total) * 100) : 0;
+    const processedPercentage =
+      total > 0 ? Math.round((processed / total) * 100) : 0;
     const isComplete = processedPercentage === 100;
 
     let tagDeleted = false;
@@ -49,36 +52,27 @@ export async function queryUploadProgress(
       }
     }
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              processedPercentage,
-              message: isComplete
-                ? 'Upload completed successfully.'
-                : `Upload progress: ${processedPercentage}% processed`,
-              startedAt,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+    return getResponseWithStructuredContent({
+      processedPercentage,
+      message: isComplete
+        ? "Upload completed successfully."
+        : `Upload progress: ${processedPercentage}% processed`,
+      startedAt,
+      tagAddress: tag.address,
+    });
   } catch (error: any) {
     const status = error?.status ?? error?.response?.status;
     if (status === 404) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Tag with ID ${args.tagId} does not exist or has been deleted`
+        `Tag with ID ${args.tagId} does not exist or has been deleted. ` +
+          GATEWAY_TAG_ERROR_MESSAGE
       );
     }
 
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to retrieve upload progress: ${error?.message ?? 'Unknown error'}`
+      `Failed to retrieve upload progress: ${error?.message ?? "Unknown error"}`
     );
   }
 }

@@ -1,5 +1,5 @@
 import { PostageBatch } from "@ethersphere/bee-js";
-import { PostageBatchCurated, PostageBatchSummary } from "./models";
+import { PostageBatchCurated, PostageBatchSummary } from "../models";
 
 export function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);

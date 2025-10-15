@@ -62,16 +62,8 @@ export async function listPostageStamps(
   });
 
   if (Boolean(leastUsed) && filteredPostageBatches.length) {
-    let batchMinUsage = filteredPostageBatches[0].usage;
-
-    filteredPostageBatches.forEach((batch) => {
-      if (batch.usage < batchMinUsage) {
-        batchMinUsage = batch.usage;
-      }
-    });
-
-    filteredPostageBatches = filteredPostageBatches.filter(
-      (batch) => batch.usage === batchMinUsage
+    filteredPostageBatches = filteredPostageBatches.sort(
+      (batch1, batch2) => batch1.usage - batch2.usage
     );
   }
 

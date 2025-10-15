@@ -11,12 +11,12 @@ import {
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
 // Import refactored tool modules
-import { uploadText, UploadTextArgs } from "./tools/upload-text";
-import { downloadText, DownloadTextArgs } from "./tools/download-text";
-import { uploadFile, UploadFileArgs } from "./tools/upload-file";
-import { uploadFolder, UploadFolderArgs } from "./tools/upload-folder";
-import { downloadFolder, DownloadFolderArgs } from "./tools/download-folder";
-import { queryUploadProgress, QueryUploadProgressArgs } from './tools/query-upload-progress';
+import { uploadData } from "./tools/upload_data";
+import { downloadData } from "./tools/download_data";
+import { uploadFile } from "./tools/upload_file";
+import { uploadFolder } from "./tools/upload_folder";
+import { downloadFiles } from "./tools/download_files";
+import { queryUploadProgress } from "./tools/query_upload_progress";
 import { listPostageStamps } from "./tools/list-postage-stamps";
 import { getPostageStamp } from "./tools/get_postage_stamp";
 import { ListPostageStampsArgs } from "./tools/list-postage-stamps/models";
@@ -29,6 +29,16 @@ import {
   PostageBatchCuratedSchema,
   PostageBatchSummarySchema,
 } from "./schemas";
+import { updateFeed } from "./tools/update_feed";
+import { readFeed } from "./tools/read_feed";
+import { UploadDataArgs } from "./tools/upload_data/models";
+import { DownloadDataArgs } from "./tools/download_data/models";
+import { UpdateFeedArgs } from "./tools/update_feed/models";
+import { ReadFeedArgs } from "./tools/read_feed/models";
+import { UploadFileArgs } from "./tools/upload_file/models";
+import { UploadFolderArgs } from "./tools/upload_folder/models";
+import { DownloadFilesArgs } from "./tools/download_files/models";
+import { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
 
 /**
  * Swarm MCP Server class
@@ -71,8 +81,11 @@ export class SwarmMCPServer {
     this.server.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
-          name: "upload_text",
-          description: "Upload text data to Swarm",
+          name: "upload_data",
+          description:
+            "Upload text data to Swarm. Optional options (ignore if they are not requested): " +
+            "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+            "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
           inputSchema: {
             type: "object",
             properties: {
@@ -84,37 +97,128 @@ export class SwarmMCPServer {
                 type: "number",
                 description:
                   "redundancy level for fault tolerance " +
-                  "(higher values provide better fault tolerance but increase storage overhead)" +
+                  "(higher values provide better fault tolerance but increase storage overhead) " +
                   "0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid",
                 default: 0,
               },
-              memoryTopic: {
+              postageBatchId: {
                 type: "string",
                 description:
-                  "If provided, uploads the data to a feed with this topic." +
-                  "It is the label of the memory that can be used later to retrieve the data instead of its content hash." +
-                  "If not a hex string, it will be hashed to create a feed topic",
+                  "The id of the batch which will be used to perform the upload.",
+                default: undefined,
               },
             },
             required: ["data"],
           },
+          outputSchema: {
+            type: "object",
+            properties: {
+              reference: {
+                type: "string",
+                description: "Swarm reference hash for uploaded data.",
+              },
+              url: {
+                type: "string",
+                description: "URL to access uploaded data.",
+              },
+              message: {
+                type: "string",
+                description: "Upload response message.",
+              },
+            },
+            required: ["reference", "url"],
+          },
         },
         {
-          name: "download_text",
+          name: "update_feed",
           description:
-            "Retrieve text data from Swarm. Only use it if text or textformat is wanted",
+            "Update the feed of a given topic with new data. Optional options (ignore if they are not requested): " +
+            "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              data: {
+                type: "string",
+                description: "arbitrary string to upload",
+              },
+              memoryTopic: {
+                type: "string",
+                description:
+                  "If provided, uploads the data to a feed with this topic. " +
+                  "It is the label of the memory that can be used later to retrieve the data instead of its content hash. " +
+                  "If not a hex string, it will be hashed to create a feed topic",
+              },
+              postageBatchId: {
+                type: "string",
+                description:
+                  "The id of the batch which will be used to perform the upload.",
+                default: undefined,
+              },
+            },
+            required: ["data", "memoryTopic"],
+          },
+          outputSchema: {
+            type: "object",
+            properties: {
+              reference: {
+                type: "string",
+                description: "Swarm reference hash for feed update.",
+              },
+              topicString: {
+                type: "string",
+                description: "The topic string.",
+              },
+              topic: {
+                type: "string",
+                description: "The topic.",
+              },
+              feedUrl: {
+                type: "string",
+                description: "The feed URL.",
+              },
+              message: {
+                type: "string",
+                description: "Update feed response message.",
+              },
+            },
+            required: ["reference", "topic", "feedUrl"],
+          },
+        },
+        {
+          name: "download_data",
+          description:
+            "Downloads immutable data from a Swarm content address hash.",
           inputSchema: {
             type: "object",
             properties: {
               reference: {
                 type: "string",
-                description: "Swarm reference hash or memory/feed topic",
+                description: "Swarm reference hash.",
               },
-              isMemoryTopic: {
-                type: "boolean",
-                description:
-                  "When accessing memory or feed related data, this parameter must be true",
-                default: false,
+            },
+            required: ["reference"],
+          },
+          outputSchema: {
+            type: "object",
+            properties: {
+              textData: {
+                type: "string",
+                description: "The downloaded data for the given reference.",
+              },
+            },
+            required: ["textData"],
+          },
+        },
+        {
+          name: "read_feed",
+          description:
+            "Retrieve the latest data from the feed of a given topic.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              memoryTopic: {
+                type: "string",
+                description: "Feed topic.",
               },
               owner: {
                 type: "string",
@@ -122,12 +226,26 @@ export class SwarmMCPServer {
                   "when accessing external memory or feed, ethereum address of the owner must be set",
               },
             },
-            required: ["reference"],
+            required: ["memoryTopic"],
+          },
+          outputSchema: {
+            type: "object",
+            properties: {
+              textData: {
+                type: "string",
+                description: "The downloaded data for the given topic.",
+              },
+            },
+            required: ["textData"],
           },
         },
         {
           name: "upload_file",
-          description: "Upload a file to Swarm",
+          description:
+            "Upload a file to Swarm. Optional options (ignore if they are not requested): " +
+            "isPath: wether the data parameter is a path. " +
+            "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+            "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
           inputSchema: {
             type: "object",
             properties: {
@@ -144,17 +262,49 @@ export class SwarmMCPServer {
                 type: "number",
                 description:
                   "redundancy level for fault tolerance " +
-                  "(higher values provide better fault tolerance but increase storage overhead)" +
+                  "(higher values provide better fault tolerance but increase storage overhead) " +
                   "0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid",
                 default: 0,
+              },
+              postageBatchId: {
+                type: "string",
+                description:
+                  "The id of the batch which will be used to perform the upload.",
+                default: undefined,
               },
             },
             required: ["data"],
           },
+          outputSchema: {
+            type: "object",
+            properties: {
+              reference: {
+                type: "string",
+                description: "Swarm reference hash for uploaded file.",
+              },
+              url: {
+                type: "string",
+                description: "The URL to access the uploaded file.",
+              },
+              message: {
+                type: "string",
+                description: "Upload file response message.",
+              },
+              tagId: {
+                type: "string",
+                description: "The tag ID for deferred uploads.",
+              },
+            },
+            required: ["reference", "url"],
+          },
         },
         {
           name: "upload_folder",
-          description: "Upload a folder to Swarm",
+          description:
+            "Upload a folder to Swarm. Optional options (ignore if they are not requested): " +
+            "folderPath: path to the folder to upload. " +
+            "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+            "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
           inputSchema: {
             type: "object",
             properties: {
@@ -166,19 +316,47 @@ export class SwarmMCPServer {
                 type: "number",
                 description:
                   "redundancy level for fault tolerance " +
-                  "(higher values provide better fault tolerance but increase storage overhead)" +
+                  "(higher values provide better fault tolerance but increase storage overhead) " +
                   "0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid",
                 default: 0,
+              },
+              postageBatchId: {
+                type: "string",
+                description:
+                  "The id of the batch which will be used to perform the upload.",
+                default: undefined,
               },
             },
             required: ["folderPath"],
           },
+          outputSchema: {
+            type: "object",
+            properties: {
+              reference: {
+                type: "string",
+                description: "Swarm reference hash for uploaded folder.",
+              },
+              url: {
+                type: "string",
+                description: "The URL to access the uploaded folder.",
+              },
+              message: {
+                type: "string",
+                description: "Upload folder response message.",
+              },
+              tagId: {
+                type: "string",
+                description: "The tag ID for deferred uploads.",
+              },
+            },
+            required: ["reference", "url"],
+          },
         },
         {
-          name: "download_folder",
+          name: "download_files",
           description:
-            "Download folder, files or binary data from a Swarm reference and save to file path or return file list of the reference" +
-            "prioritizes this tool over download_text if there is no assumption about the data type",
+            "Download folder, files or binary data from a Swarm reference and save to file path or return file list of the reference " +
+            "prioritizes this tool over download_data if there is no assumption about the data type",
           inputSchema: {
             type: "object",
             properties: {
@@ -189,7 +367,7 @@ export class SwarmMCPServer {
               filePath: {
                 type: "string",
                 description:
-                  "Optional file path to save the downloaded content (only available in stdio mode)." +
+                  "Optional file path to save the downloaded content (only available in stdio mode). " +
                   "if not provided list of files in the manifest will be returned",
               },
             },
@@ -199,15 +377,15 @@ export class SwarmMCPServer {
         {
           name: "list_postage_stamps",
           description:
-            "List the available postage stamps. Options: leastUsed, limit, minUsage(%), maxUsage(%).",
+            "List the available postage stamps. Optional options (ignore if they are not requested): leastUsed, limit, minUsage(%), maxUsage(%).",
           inputSchema: {
             type: "object",
             properties: {
               leastUsed: {
                 type: "boolean",
                 description:
-                  "A boolean value that tells if stamps are sorted so least used comes first." +
-                  "true - means that stamps should be sorted" +
+                  "A boolean value that tells if stamps are sorted so least used comes first. " +
+                  "true - means that stamps should be sorted " +
                   "false - means that stamps should not be sorted",
                 default: false,
               },
@@ -251,7 +429,6 @@ export class SwarmMCPServer {
               postageBatchId: {
                 type: "string",
                 description: "The id of the stamp which is requested.",
-                default: false,
               },
             },
             required: ["postageBatchId"],
@@ -275,13 +452,13 @@ export class SwarmMCPServer {
               size: {
                 type: "number",
                 description:
-                  "The storage size in MB (Megabytes)." +
+                  "The storage size in MB (Megabytes). " +
                   "These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB",
               },
               duration: {
                 type: "string",
                 description:
-                  "Duration for which the data should be stored." +
+                  "Duration for which the data should be stored. " +
                   "Time to live of the postage stamp, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month ",
               },
               label: {
@@ -304,18 +481,17 @@ export class SwarmMCPServer {
                 type: "string",
                 description:
                   "The id of the batch for which extend is performed.",
-                default: false,
               },
               size: {
                 type: "number",
                 description:
-                  "The storage size in MB (Megabytes)." +
+                  "The storage size in MB (Megabytes). " +
                   "These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB",
               },
               duration: {
                 type: "string",
                 description:
-                  "Duration for which the data should be stored." +
+                  "Duration for which the data should be stored. " +
                   "Time to live of the postage stamp, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month ",
               },
             },
@@ -334,17 +510,41 @@ export class SwarmMCPServer {
           },
         },
         {
-          name: 'query_upload_progress',
-          description: 'Query upload progress for a specific upload session identified with the returned Tag ID',
+          name: "query_upload_progress",
+          description:
+            "Query upload progress for a specific upload session identified with the returned Tag ID",
           inputSchema: {
-            type: 'object',
+            type: "object",
             properties: {
               tagId: {
-                type: 'string',
-                description: 'Tag ID returned by upload_file and upload_folder tools to track upload progress',
+                type: "string",
+                description:
+                  "Tag ID returned by upload_file and upload_folder tools to track upload progress",
               },
             },
-            required: ['tagId'],
+            required: ["tagId"],
+          },
+          outputSchema: {
+            type: "object",
+            properties: {
+              processedPercentage: {
+                type: "number",
+                description: "The deferred upload processed percentage.",
+              },
+              message: {
+                type: "string",
+                description: "Query upload response message.",
+              },
+              startedAt: {
+                type: "string",
+                description: "When it started.",
+              },
+              tagAddress: {
+                type: "string",
+                description: "The address of the tag.",
+              },
+            },
+            required: ["processedPercentage", "tagAddress"],
           },
         },
       ],
@@ -358,11 +558,17 @@ export class SwarmMCPServer {
 
         // Call the appropriate tool based on the request name
         switch (request.params.name) {
-          case "upload_text":
-            return uploadText(args as unknown as UploadTextArgs, this.bee);
+          case "upload_data":
+            return uploadData(args as unknown as UploadDataArgs, this.bee);
 
-          case "download_text":
-            return downloadText(args as unknown as DownloadTextArgs, this.bee);
+          case "download_data":
+            return downloadData(args as unknown as DownloadDataArgs, this.bee);
+
+          case "update_feed":
+            return updateFeed(args as unknown as UpdateFeedArgs, this.bee);
+
+          case "read_feed":
+            return readFeed(args as unknown as ReadFeedArgs, this.bee);
 
           case "upload_file":
             return uploadFile(
@@ -378,15 +584,19 @@ export class SwarmMCPServer {
               this.server.server.transport
             );
 
-          case "download_folder":
-            return downloadFolder(
-              args as unknown as DownloadFolderArgs,
+          case "download_files":
+            return downloadFiles(
+              args as unknown as DownloadFilesArgs,
               this.bee,
               this.server.server.transport
             );
-            
-          case 'query_upload_progress':
-            return queryUploadProgress(args as unknown as QueryUploadProgressArgs, this.bee, this.server.server.transport);
+
+          case "query_upload_progress":
+            return queryUploadProgress(
+              args as unknown as QueryUploadProgressArgs,
+              this.bee,
+              this.server.server.transport
+            );
 
           case "list_postage_stamps":
             return listPostageStamps(

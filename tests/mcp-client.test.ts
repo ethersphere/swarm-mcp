@@ -27,17 +27,20 @@ describe("can list tools", () => {
     const tools = await client.listTools();
 
     expect(tools).toBeDefined();
-    expect(tools.tools).toHaveLength(9);
+    expect(tools.tools).toHaveLength(12);
     expect(tools.tools.map((t) => t.name)).toEqual([
-      "upload_text",
-      "download_text",
+      "upload_data",
+      "update_feed",
+      "download_data",
+      "read_feed",
       "upload_file",
       "upload_folder",
-      "download_folder",
+      "download_files",
       "list_postage_stamps",
       "get_postage_stamp",
       "create_postage_stamp",
       "extend_postage_stamp",
+      "query_upload_progress",
     ]);
   });
 });
