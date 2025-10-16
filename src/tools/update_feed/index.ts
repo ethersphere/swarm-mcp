@@ -8,12 +8,15 @@ import { Wallet } from "@ethereumjs/wallet";
 import crypto from "crypto";
 import config from "../../config";
 import {
+  errorHasStatus,
+  getErrorMessage,
   getResponseWithStructuredContent,
   hexToBytes,
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UpdateFeedArgs } from "./models";
+import { BAD_REQUEST_STATUS } from "../../constants";
 
 export async function updateFeed(
   args: UpdateFeedArgs,
@@ -68,9 +71,21 @@ export async function updateFeed(
   const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
   const signer = new Wallet(feedPrivateKey);
   const owner = signer.getAddressString().slice(2);
-  const feedWriter = bee.makeFeedWriter(topicBytes, feedPrivateKey);
 
-  const result = await feedWriter.uploadPayload(postageBatchId!, binaryData);
+  let result;
+
+  try {
+    const feedWriter = bee.makeFeedWriter(topicBytes, feedPrivateKey);
+
+    result = await feedWriter.uploadPayload(postageBatchId!, binaryData);
+  } catch (error) {
+    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
+    } else {
+      throw new McpError(ErrorCode.InvalidParams, "Unable to update feed.");
+    }
+  }
+
   const reference = result.reference.toString();
 
   return getResponseWithStructuredContent({

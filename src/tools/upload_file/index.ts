@@ -10,12 +10,17 @@ import { promisify } from "util";
 import config from "../../config";
 import {
   errorHasStatus,
+  getErrorMessage,
   getResponseWithStructuredContent,
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFileArgs } from "./models";
-import { GATEWAY_TAG_ERROR_MESSAGE, NOT_FOUND_STATUS } from "../../constants";
+import {
+  BAD_REQUEST_STATUS,
+  GATEWAY_TAG_ERROR_MESSAGE,
+  NOT_FOUND_STATUS,
+} from "../../constants";
 
 export async function uploadFile(
   args: UploadFileArgs,
@@ -85,13 +90,18 @@ export async function uploadFile(
     }
   }
 
-  // Start the deferred upload
-  const result = await bee.uploadFile(
-    postageBatchId,
-    binaryData,
-    name,
-    options
-  );
+  let result;
+
+  try {
+    // Start the deferred upload
+    result = await bee.uploadFile(postageBatchId, binaryData, name, options);
+  } catch (error) {
+    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
+    } else {
+      throw new McpError(ErrorCode.InvalidParams, "Unable to upload file.");
+    }
+  }
 
   return getResponseWithStructuredContent({
     reference: result.reference.toString(),

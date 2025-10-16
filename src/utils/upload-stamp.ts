@@ -1,7 +1,7 @@
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import config from "../config";
 import { errorHasStatus } from ".";
-import { GATEWAY_STAMP_ERROR_MESSAGE, NOT_FOUND_STATUS } from "../constants";
+import { DEFAULT_GATEWAY_BATCH_ID, NOT_FOUND_STATUS } from "../constants";
 import { Bee } from "@ethersphere/bee-js";
 
 export const getUploadPostageBatchId = async (
@@ -35,10 +35,7 @@ export const getUploadPostageBatchId = async (
       });
     } catch (error) {
       if (errorHasStatus(error, NOT_FOUND_STATUS)) {
-        throw new McpError(
-          ErrorCode.MethodNotFound,
-          GATEWAY_STAMP_ERROR_MESSAGE
-        );
+        postageBatchId = DEFAULT_GATEWAY_BATCH_ID;
       } else {
         throw new McpError(
           ErrorCode.InvalidParams,
@@ -48,10 +45,10 @@ export const getUploadPostageBatchId = async (
     }
   }
 
-  if (!argsPostageBatchId && maxRemainingSize === 0) {
+  if (!postageBatchId) {
     throw new McpError(
       ErrorCode.InvalidRequest,
-      "No postageBatchId was provided and there is no usable postage batch with capacity."
+      "There is no usable postage batch with capacity."
     );
   }
   return postageBatchId!;

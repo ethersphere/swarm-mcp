@@ -8,9 +8,15 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import fs from "fs";
 import { promisify } from "util";
 import config from "../../config";
-import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
+import {
+  errorHasStatus,
+  getErrorMessage,
+  getResponseWithStructuredContent,
+  ToolResponse,
+} from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFolderArgs } from "./models";
+import { BAD_REQUEST_STATUS } from "../../constants";
 
 export async function uploadFolder(
   args: UploadFolderArgs,
@@ -71,11 +77,22 @@ export async function uploadFolder(
     }
   }
 
-  const result = await bee.uploadFilesFromDirectory(
-    postageBatchId,
-    args.folderPath,
-    options
-  );
+  let result;
+
+  try {
+    // Start the deferred upload
+    result = await bee.uploadFilesFromDirectory(
+      postageBatchId,
+      args.folderPath,
+      options
+    );
+  } catch (error) {
+    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
+    } else {
+      throw new McpError(ErrorCode.InvalidParams, "Unable to upload folder.");
+    }
+  }
 
   return getResponseWithStructuredContent({
     reference: result.reference.toString(),

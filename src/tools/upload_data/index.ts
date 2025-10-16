@@ -5,9 +5,15 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "../../config";
-import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
+import {
+  errorHasStatus,
+  getErrorMessage,
+  getResponseWithStructuredContent,
+  ToolResponse,
+} from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadDataArgs } from "./models";
+import { BAD_REQUEST_STATUS } from "../../constants";
 
 export async function uploadData(
   args: UploadDataArgs,
@@ -30,7 +36,17 @@ export async function uploadData(
   const redundancyLevel = args.redundancyLevel;
   const options = redundancyLevel ? { redundancyLevel } : undefined;
 
-  const result = await bee.uploadData(postageBatchId, binaryData, options);
+  let result;
+
+  try {
+    result = await bee.uploadData(postageBatchId, binaryData, options);
+  } catch (error) {
+    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
+    } else {
+      throw new McpError(ErrorCode.InvalidParams, "Unable to upload data.");
+    }
+  }
 
   return getResponseWithStructuredContent({
     reference: result.reference.toString(),
