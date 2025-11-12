@@ -30,10 +30,10 @@ export async function readFeed(
     `[API] Downloading text from Swarm feed with topic: ${memoryTopic}`
   );
 
-  if (!config.bee.feedPrivateKey) {
+  if (!config.bee.feedPrivateKey && !owner) {
     throw new McpError(
       ErrorCode.InvalidParams,
-      "Feed private key not configured. Set BEE_FEED_PK environment variable."
+      "Feed private key not configured. Set BEE_FEED_PK environment variable or specify owner parameter."
     );
   }
 
@@ -55,7 +55,7 @@ export async function readFeed(
 
   let feedOwner = owner;
   if (!feedOwner) {
-    const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
+    const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey!);
     const signer = new Wallet(feedPrivateKey);
     feedOwner = signer.getAddressString().slice(2);
   } else {
