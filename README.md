@@ -350,7 +350,6 @@ To configure the server, pass environment variables to the container using the `
 ```bash
 docker run -p 3000:3000 \
   -e BEE_API_URL="http://localhost:1633" \
-  -e BEE_BATCH_ID="your_batch_id_here" \
   -e BEE_FEED_PK="your_private_key_here" \
   swarm-mcp
 ```
