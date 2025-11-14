@@ -1,5 +1,6 @@
-import { PostageBatch } from "@ethersphere/bee-js";
+import { Bee, PostageBatch } from "@ethersphere/bee-js";
 import { PostageBatchCurated, PostageBatchSummary } from "../models";
+import { NOT_FOUND_STATUS } from "../constants";
 
 export function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
@@ -77,6 +78,21 @@ export const runWithTimeout = async <T>(
   const response = await Promise.race([asyncAction, timeoutPromise]);
 
   return [response, hasTimedOut];
+};
+
+export const determineIfGateway = async (bee: Bee) => {
+  let isGateway = false;
+
+  try {
+    // Request fails for gateways with 404.
+    await bee.getNodeInfo();
+  } catch (error) {
+    if (errorHasStatus(error, NOT_FOUND_STATUS)) {
+      isGateway = true;
+    }
+  }
+  
+  return isGateway;
 };
 
 // From bee.js

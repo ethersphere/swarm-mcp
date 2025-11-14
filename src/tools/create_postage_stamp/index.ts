@@ -7,7 +7,6 @@ import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
   getErrorMessage,
-  getResponseWithStructuredContent,
   makeDate,
   runWithTimeout,
   ToolResponse,
@@ -17,8 +16,6 @@ import {
   BAD_REQUEST_STATUS,
   CALL_TIMEOUT,
   POSTAGE_CREATE_TIMEOUT_MESSAGE,
-  GATEWAY_STAMP_ERROR_MESSAGE,
-  NOT_FOUND_STATUS,
 } from "../../constants";
 
 export async function createPostageStamp(
@@ -75,9 +72,7 @@ export async function createPostageStamp(
 
     buyStorageResponse = response as BatchId;
   } catch (error) {
-    if (errorHasStatus(error, NOT_FOUND_STATUS)) {
-      throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
-    } else if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
       throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
     } else {
       throw new McpError(ErrorCode.InvalidParams, "Unable to buy storage.");

@@ -5,7 +5,6 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import {
-  errorHasStatus,
   getBatchSummary,
   getResponseWithStructuredContent,
   ToolResponse,
@@ -16,13 +15,13 @@ import {
   PostageBatchSummary,
   ResponseContent,
 } from "../../models";
-import { GATEWAY_STAMP_ERROR_MESSAGE, NOT_FOUND_STATUS } from "../../constants";
 
 export async function getPostageStamp(
   args: GetPostageStampArgs,
   bee: Bee
 ): Promise<ToolResponse> {
   const { postageBatchId } = args;
+
   if (!postageBatchId) {
     throw new McpError(
       ErrorCode.InvalidParams,
@@ -35,14 +34,10 @@ export async function getPostageStamp(
   try {
     rawPostageBatch = await bee.getPostageBatch(postageBatchId);
   } catch (error) {
-    if (errorHasStatus(error, NOT_FOUND_STATUS)) {
-      throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
-    } else {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        "Retrieval of postage batch failed."
-      );
-    }
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      "Retrieval of postage batch failed."
+    );
   }
 
   const batch: PostageBatchCurated = {

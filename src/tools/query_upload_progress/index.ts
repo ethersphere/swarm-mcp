@@ -6,7 +6,6 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
 import { QueryUploadProgressArgs } from "./models";
-import { GATEWAY_TAG_ERROR_MESSAGE } from "../../constants";
 
 // The third argument (transport) is accepted for parity with other tools but unused here
 export async function queryUploadProgress(
@@ -61,15 +60,6 @@ export async function queryUploadProgress(
       tagAddress: tag.address,
     });
   } catch (error: any) {
-    const status = error?.status ?? error?.response?.status;
-    if (status === 404) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Tag with ID ${args.tagId} does not exist or has been deleted. ` +
-          GATEWAY_TAG_ERROR_MESSAGE
-      );
-    }
-
     throw new McpError(
       ErrorCode.InternalError,
       `Failed to retrieve upload progress: ${error?.message ?? "Unknown error"}`
