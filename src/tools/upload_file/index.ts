@@ -83,11 +83,7 @@ export async function uploadFile(
       tagId = tag.uid.toString();
       message =
         "File upload started in deferred mode. Use query_upload_progress to track progress.";
-    } catch (error) {
-      if (errorHasStatus(error, NOT_FOUND_STATUS)) {
-        console.log(GATEWAY_TAG_ERROR_MESSAGE);
-      }
-    }
+    } catch (error) {}
   }
 
   let result;
@@ -110,3 +106,4 @@ export async function uploadFile(
     tagId,
   });
 }
+

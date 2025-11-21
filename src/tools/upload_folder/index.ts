@@ -72,7 +72,6 @@ export async function uploadFolder(
       message =
         "Folder upload started in deferred mode. Use query_upload_progress to track progress.";
     } catch (error) {
-      console.error("Failed to create tag:", error);
       options.deferred = false;
     }
   }
@@ -101,3 +100,4 @@ export async function uploadFolder(
     tagId,
   });
 }
+

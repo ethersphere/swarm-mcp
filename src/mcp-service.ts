@@ -50,8 +50,6 @@ export class SwarmMCPServer {
   private readonly bee: Bee;
 
   constructor() {
-    console.error("[Setup] Initializing Swarm MCP server...");
-
     // Initialize Bee client with the configured endpoint
     this.bee = new Bee(config.bee.endpoint);
 
@@ -80,7 +78,6 @@ export class SwarmMCPServer {
   }
 
   private setupToolHandlers() {
-    
     const nodeOnlyTools = [
       "list_postage_stamps",
       "get_postage_stamp",
@@ -94,11 +91,13 @@ export class SwarmMCPServer {
 
       let tools = SwarmToolsSchema;
       if (isGateway) {
-        tools = SwarmToolsSchema.filter(item => !nodeOnlyTools.includes(item.name));
+        tools = SwarmToolsSchema.filter(
+          (item) => !nodeOnlyTools.includes(item.name)
+        );
       }
 
       return {
-        tools
+        tools,
       };
     });
 
@@ -183,3 +182,4 @@ export class SwarmMCPServer {
     );
   }
 }
+

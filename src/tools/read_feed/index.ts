@@ -26,10 +26,6 @@ export async function readFeed(
     );
   }
 
-  console.error(
-    `[API] Downloading text from Swarm feed with topic: ${memoryTopic}`
-  );
-
   if (!config.bee.feedPrivateKey && !owner) {
     throw new McpError(
       ErrorCode.InvalidParams,
@@ -82,3 +78,4 @@ export async function readFeed(
     textData,
   });
 }
+

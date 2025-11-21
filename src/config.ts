@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { DEFERRED_UPLOAD_SIZE_THRESHOLD_MB } from "./constants";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 /**
  * Configuration for the MCP server and Bee client
@@ -43,3 +43,4 @@ const config: Config = {
 };
 
 export default config;
+
