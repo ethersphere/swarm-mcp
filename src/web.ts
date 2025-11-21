@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import { SwarmMCPServer } from './mcp-service';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import express, { Request, Response } from "express";
+import cors from "cors";
+import { SwarmMCPServer } from "./mcp-service";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-const host = process.env.HOST || '0.0.0.0';
+const host = process.env.HOST || "0.0.0.0";
 
 const app = express();
 
@@ -16,7 +16,10 @@ app.use(cors());
 app.use(express.json());
 
 // For storing SSE transports
-const transports: Map<string, SSEServerTransport> = new Map<string, SSEServerTransport>();
+const transports: Map<string, SSEServerTransport> = new Map<
+  string,
+  SSEServerTransport
+>();
 
 async function main() {
   // Setup for stateless HTTP transport
@@ -27,16 +30,15 @@ async function main() {
   await httpSwarmMCPServer.server.connect(httpTransport);
 
   // Handle all MCP requests on the /mcp endpoint
-  app.all('/mcp', async (req: Request, res: Response) => {
-    console.error(`[${req.method}] Handling request for ${req.path}`);
+  app.all("/mcp", async (req: Request, res: Response) => {
     try {
       await httpTransport.handleRequest(req, res, req.body);
     } catch (error) {
-      console.error('Error handling MCP request:', error);
+      console.error("Error handling MCP request:", error);
       if (!res.headersSent) {
         res.status(500).json({
-          jsonrpc: '2.0',
-          error: { code: -32603, message: 'Internal server error' },
+          jsonrpc: "2.0",
+          error: { code: -32603, message: "Internal server error" },
           id: req.body?.id,
         });
       }
@@ -44,54 +46,59 @@ async function main() {
   });
 
   // Setup for stateful SSE transport
-  app.get('/sse', async (req, res) => {
+  app.get("/sse", async (req, res) => {
     if (req.query.sessionId) {
-      console.error("Client Reconnecting? This shouldn't happen; when client has a sessionId, GET /sse should not be called again.", req.query.sessionId);
-      res.status(400).send("Reconnecting with a session ID is not supported on this endpoint.");
+      console.error(
+        "Client Reconnecting? This shouldn't happen; when client has a sessionId, GET /sse should not be called again.",
+        req.query.sessionId
+      );
+      res
+        .status(400)
+        .send(
+          "Reconnecting with a session ID is not supported on this endpoint."
+        );
       return;
     }
 
     const { server } = new SwarmMCPServer();
     // Create and store transport for new session
-    const transport = new SSEServerTransport('/message', res);
+    const transport = new SSEServerTransport("/message", res);
     transports.set(transport.sessionId, transport);
 
     // Connect server to transport
     await server.connect(transport);
-    console.error('Client Connected: ', transport.sessionId);
 
     // Handle close of connection
-    res.on('close', () => {
-      console.error('Client Disconnected: ', transport.sessionId);
+    res.on("close", () => {
       transports.delete(transport.sessionId);
       server.close();
     });
   });
 
-  app.post('/message', async (req, res) => {
+  app.post("/message", async (req, res) => {
     const sessionId = req.query.sessionId as string;
     if (!sessionId) {
-      res.status(400).send('Session ID is required');
+      res.status(400).send("Session ID is required");
       return;
     }
 
     const transport = transports.get(sessionId);
     if (transport) {
-      console.error('Client Message from', sessionId);
       await transport.handlePostMessage(req, res, req.body);
     } else {
-      console.error(`No transport found for sessionId ${sessionId}`)
-      res.status(403).send('Session not found');
+      console.error(`No transport found for sessionId ${sessionId}`);
+      res.status(403).send("Session not found");
     }
   });
 
   // Start the server
   app.listen(port, host, () => {
-    console.error(`Swarm MCP Server running on http://${host}:${port}`);
+    console.info(`Swarm MCP Server running on http://${host}:${port}`);
   });
 }
 
-main().catch(error => {
-  console.error('Failed to start Swarm MCP Server:', error);
+main().catch((error) => {
+  console.error("Failed to start Swarm MCP Server:", error);
   process.exit(1);
 });
+
