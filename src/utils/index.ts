@@ -1,6 +1,6 @@
 import { Bee, PostageBatch } from "@ethersphere/bee-js";
 import { PostageBatchCurated, PostageBatchSummary } from "../models";
-import { NOT_FOUND_STATUS } from "../constants";
+import { NODE_STATUS_CHECK_CALL_TIMEOUT, NOT_FOUND_STATUS } from "../constants";
 
 export function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
@@ -85,7 +85,14 @@ export const determineIfGateway = async (bee: Bee) => {
 
   try {
     // Request fails for gateways with 404.
-    await bee.getNodeInfo();
+    const getNodeInfoPromise =  bee.getNodeInfo();
+
+    const [response, hasTimedOut] = await runWithTimeout(
+      getNodeInfoPromise,
+      NODE_STATUS_CHECK_CALL_TIMEOUT
+    );
+
+    isGateway = hasTimedOut;
   } catch (error) {
     if (errorHasStatus(error, NOT_FOUND_STATUS)) {
       isGateway = true;

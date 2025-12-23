@@ -5,6 +5,7 @@ export const GATEWAY_TAG_ERROR_MESSAGE =
 export const POSTAGE_CREATE_TIMEOUT_MESSAGE =
   "Purchase of postage batch is in progress, it may take a few minutes. Please list you batches after a few minutes to find it.";
 export const CALL_TIMEOUT = 30000;
+export const NODE_STATUS_CHECK_CALL_TIMEOUT = 10000;
 export const DEFERRED_UPLOAD_SIZE_THRESHOLD_MB = 5;
 export const DEFAULT_GATEWAY_BATCH_ID =
   "0000000000000000000000000000000000000000000000000000000000000000";
