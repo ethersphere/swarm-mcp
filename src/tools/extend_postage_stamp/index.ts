@@ -3,17 +3,20 @@
  * Increase the duration and size of a postage stamp.
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { Bee, Duration, Size } from "@ethersphere/bee-js";
+import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
   makeDate,
+  runWithTimeout,
   ToolResponse,
 } from "../../utils";
 import { ExtendPostageStampArgs } from "./models";
 import {
   BAD_REQUEST_STATUS,
+  CALL_TIMEOUT,
+  EXTEND_POSTAGE_TIMEOUT_MESSAGE,
 } from "../../constants";
 
 export async function extendPostageStamp(
@@ -48,11 +51,29 @@ export async function extendPostageStamp(
   let extendStorageResponse;
 
   try {
-    extendStorageResponse = await bee.extendStorage(
+    const extendStoragePromise = bee.extendStorage(
       postageBatchId,
       extendSize,
       extendDuration
     );
+
+    const [response, hasTimedOut] = await runWithTimeout(
+      extendStoragePromise,
+      CALL_TIMEOUT
+    );
+
+    if (hasTimedOut) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: EXTEND_POSTAGE_TIMEOUT_MESSAGE,
+          },
+        ],
+      };
+    }
+
+    extendStorageResponse = response as BatchId;
   } catch (error) {
     if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
       throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));

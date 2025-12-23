@@ -1,4 +1,7 @@
-import { PostageBatchCuratedSchema, PostageBatchSummarySchema } from "./postage-batch";
+import {
+  PostageBatchCuratedSchema,
+  PostageBatchSummarySchema,
+} from "./postage-batch";
 
 export const SwarmToolsSchema = [
   {
@@ -107,8 +110,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "download_data",
-    description:
-      "Downloads immutable data from a Swarm content address hash.",
+    description: "Downloads immutable data from a Swarm content address hash.",
     inputSchema: {
       type: "object",
       properties: {
@@ -132,8 +134,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "read_feed",
-    description:
-      "Retrieve the latest data from the feed of a given topic.",
+    description: "Retrieve the latest data from the feed of a given topic.",
     inputSchema: {
       type: "object",
       properties: {
@@ -316,13 +317,11 @@ export const SwarmToolsSchema = [
         },
         minUsage: {
           type: "number",
-          description:
-            "Only list stamps with at least this usage percentage",
+          description: "Only list stamps with at least this usage percentage",
         },
         maxUsage: {
           type: "number",
-          description:
-            "Only list stamps with at most this usage percentage.",
+          description: "Only list stamps with at most this usage percentage.",
         },
       },
     },
@@ -365,8 +364,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "create_postage_stamp",
-    description:
-      "Buy postage stamp based on size in megabytes and duration.",
+    description: "Buy postage stamp based on size in megabytes and duration.",
     inputSchema: {
       type: "object",
       properties: {
@@ -400,8 +398,7 @@ export const SwarmToolsSchema = [
       properties: {
         postageBatchId: {
           type: "string",
-          description:
-            "The id of the batch for which extend is performed.",
+          description: "The id of the batch for which extend is performed.",
         },
         size: {
           type: "number",
@@ -414,17 +411,6 @@ export const SwarmToolsSchema = [
           description:
             "Duration for which the data should be stored. " +
             "Time to live of the postage stamp, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month ",
-        },
-      },
-      required: ["postageBatchId"],
-    },
-    outputSchema: {
-      type: "object",
-      properties: {
-        postageBatchId: {
-          type: "string",
-          description:
-            "The id of the postage batch for which the top up occurred.",
         },
       },
       required: ["postageBatchId"],
