@@ -47,11 +47,29 @@ export async function readFeed(
   }
 
   // Convert topic string to bytes
-  const topicBytes = hexToBytes(topic);
+  let topicBytes: Uint8Array;
+  try {
+    topicBytes = hexToBytes(topic);
+  } catch (error) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      `Invalid topic: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 
   let feedOwner = owner;
   if (!feedOwner) {
-    const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey!);
+    let feedPrivateKey: Uint8Array;
+    try {
+      feedPrivateKey = hexToBytes(config.bee.feedPrivateKey!);
+    } catch (error) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Invalid feed private key: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
     const signer = new Wallet(feedPrivateKey);
     feedOwner = signer.getAddressString().slice(2);
   } else {

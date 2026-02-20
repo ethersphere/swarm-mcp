@@ -66,9 +66,27 @@ export async function updateFeed(
   }
 
   // Convert topic string to bytes
-  const topicBytes = hexToBytes(topic);
+  let topicBytes: Uint8Array;
+  try {
+    topicBytes = hexToBytes(topic);
+  } catch (error) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      `Invalid topic: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 
-  const feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
+  let feedPrivateKey: Uint8Array;
+  try {
+    feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
+  } catch (error) {
+    throw new McpError(
+      ErrorCode.InternalError,
+      `Invalid feed private key: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
   const signer = new Wallet(feedPrivateKey);
   const owner = signer.getAddressString().slice(2);
 

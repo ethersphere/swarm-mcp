@@ -4,10 +4,6 @@ export const PostageBatchCuratedSchema = {
     type: "string",
     description: "The ID of the batch.",
   },
-  utilization: {
-    type: "number",
-    description: "Represents how much of the batch is used up.",
-  },
   usable: {
     type: "boolean",
     description: "Tells if the batch is usable.",

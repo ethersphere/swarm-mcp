@@ -39,12 +39,14 @@ export async function getPostageStamp(
       "Retrieval of postage batch failed."
     );
   }
+  
+  const { utilization, ...filteredPostageBatch } = rawPostageBatch;
 
   const batch: PostageBatchCurated = {
-    ...rawPostageBatch,
-    batchID: rawPostageBatch.batchID.toHex(),
+    ...filteredPostageBatch,
+    batchID: filteredPostageBatch.batchID.toHex(),
   };
-  const batchSummary: PostageBatchSummary = getBatchSummary(rawPostageBatch);
+  const batchSummary: PostageBatchSummary = getBatchSummary(batch);
 
   const content: ResponseContent<PostageBatchCurated, PostageBatchSummary> = {
     raw: batch,

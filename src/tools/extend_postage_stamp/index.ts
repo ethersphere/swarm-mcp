@@ -8,7 +8,6 @@ import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
-  makeDate,
   runWithTimeout,
   ToolResponse,
 } from "../../utils";
@@ -42,7 +41,7 @@ export async function extendPostageStamp(
 
   try {
     if (duration) {
-      extendDuration = Duration.fromMilliseconds(makeDate(duration));
+      extendDuration = Duration.parseFromString(duration);
     }
   } catch (makeDateError) {
     throw new McpError(ErrorCode.InvalidParams, "Invalid parameter: duration");

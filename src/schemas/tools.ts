@@ -165,7 +165,7 @@ export const SwarmToolsSchema = [
     name: "upload_file",
     description:
       "Upload a file to Swarm. Optional options (ignore if they are not requested): " +
-      "isPath: wether the data parameter is a path. " +
+      "isPath: whether the data parameter is a path. " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
     inputSchema: {

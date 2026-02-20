@@ -7,7 +7,6 @@ import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
   getErrorMessage,
-  makeDate,
   runWithTimeout,
   ToolResponse,
 } from "../../utils";
@@ -36,20 +35,13 @@ export async function createPostageStamp(
     );
   }
 
-  let durationMs;
-
-  try {
-    durationMs = makeDate(duration);
-  } catch (makeDateError) {
-    throw new McpError(ErrorCode.InvalidParams, "Invalid parameter: duration");
-  }
 
   let buyStorageResponse: BatchId;
 
   try {
     const buyStoragePromise = bee.buyStorage(
       Size.fromMegabytes(size),
-      Duration.fromMilliseconds(durationMs),
+      Duration.parseFromString(duration),
       {
         label,
       }

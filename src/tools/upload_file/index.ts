@@ -6,7 +6,8 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
-import { promisify } from "util";
+import { readFile } from "fs/promises";
+import path from "path";
 import config from "../../config";
 import {
   errorHasStatus,
@@ -53,14 +54,14 @@ export async function uploadFile(
 
     // Read file from path
     try {
-      binaryData = await promisify(fs.readFile)(args.data);
+      binaryData = await readFile(args.data);
     } catch (fileError) {
       throw new McpError(
         ErrorCode.InvalidParams,
         `Unable to read file at path: ${args.data}`
       );
     }
-    name = args.data.split("/").pop();
+    name = path.basename(args.data);
   } else {
     binaryData = Buffer.from(args.data, "base64");
   }

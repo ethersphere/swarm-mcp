@@ -33,7 +33,8 @@ export async function listPostageStamps(
     );
   }
 
-  const batches: PostageBatchCurated[] = rawPostageBatches.map((batch) => ({
+  const batches: PostageBatchCurated[] = rawPostageBatches.map(
+    ({utilization, ...batch}) => ({
     ...batch,
     batchID: batch.batchID.toHex(),
   }));

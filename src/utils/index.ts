@@ -3,6 +3,18 @@ import { PostageBatchCurated, PostageBatchSummary } from "../models";
 import { NODE_STATUS_CHECK_CALL_TIMEOUT, NOT_FOUND_STATUS } from "../constants";
 
 export function hexToBytes(hex: string): Uint8Array {
+  if (hex.startsWith("0x")) {
+    hex = hex.slice(2);
+  }
+
+  if (hex.length % 2 !== 0) {
+    throw new Error(`Hex string must have an even length, got ${hex.length}`);
+  }
+
+  if (!/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new Error("Invalid hexadecimal string");
+  }
+
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
     bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
@@ -101,87 +113,3 @@ export const determineIfGateway = async (bee: Bee) => {
   
   return isGateway;
 };
-
-// From bee.js
-const dateUnits: Record<string, number | undefined> = {
-  ms: 1,
-  milli: 1,
-  millis: 1,
-  millisecond: 1,
-  milliseconds: 1,
-  s: 1000,
-  sec: 1000,
-  second: 1000,
-  seconds: 1000,
-  m: 60_000,
-  min: 60_000,
-  minute: 60_000,
-  minutes: 60_000,
-  h: 3_600_000,
-  hour: 3_600_000,
-  hours: 3_600_000,
-  d: 86_400_000,
-  day: 86_400_000,
-  days: 86_400_000,
-  w: 604_800_000,
-  week: 604_800_000,
-  weeks: 604_800_000,
-  month: 2_592_000_000,
-  months: 2_592_000_000,
-  y: 31_536_000_000,
-  year: 31_536_000_000,
-  years: 31_536_000_000,
-};
-
-// From bee.js
-export function makeDate(numberWithUnit: string): number {
-  const number = parseFloat(numberWithUnit);
-  if (isNaN(number)) {
-    throw Error("makeDate got NaN for input");
-  }
-  const unit = numberWithUnit
-    .replace(/^-?[0-9.]+/, "")
-    .trim()
-    .toLowerCase();
-  const multiplier = dateUnits[unit];
-  if (!multiplier) {
-    throw Error(`Unknown unit: "${unit}"`);
-  }
-  return number * multiplier;
-}
-
-// From bee.js
-const storageUnits: Record<string, number | undefined> = {
-  b: 1,
-  byte: 1,
-  bytes: 1,
-  kb: 1024,
-  kilobyte: 1024,
-  kilobytes: 1024,
-  mb: 1024 ** 2,
-  megabyte: 1024 ** 2,
-  megabytes: 1024 ** 2,
-  gb: 1024 ** 3,
-  gigabyte: 1024 ** 3,
-  gigabytes: 1024 ** 3,
-  tb: 1024 ** 4,
-  terabyte: 1024 ** 4,
-  terabytes: 1024 ** 4,
-};
-
-// From bee.js
-export function makeStorage(numberWithUnit: string): number {
-  const number = parseFloat(numberWithUnit);
-  if (isNaN(number)) {
-    throw Error("makeStorage got NaN for input");
-  }
-  const unit = numberWithUnit
-    .replace(/^-?[0-9.]+/, "")
-    .trim()
-    .toLowerCase();
-  const multiplier = storageUnits[unit];
-  if (!multiplier) {
-    throw Error(`Unknown unit: "${unit}"`);
-  }
-  return number * multiplier;
-}

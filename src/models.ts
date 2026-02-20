@@ -1,6 +1,6 @@
 import { PostageBatch } from "@ethersphere/bee-js";
 
-export type PostageBatchCurated = Omit<PostageBatch, "batchID"> & {
+export type PostageBatchCurated = Omit<PostageBatch, "batchID" | "utilization"> & {
   batchID: string;
 };
 
