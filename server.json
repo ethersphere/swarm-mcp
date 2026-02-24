@@ -1,0 +1,61 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.Solar-Punk-Ltd/swarm-mcp",
+  "description": "MCP server to interact with the Swarm decentralized storage infrastructure",
+  "title": "Swarm MCP",
+  "websiteUrl": "https://ethswarm.org",
+  "repository": {
+    "url": "https://github.com/Solar-Punk-Ltd/swarm-mcp",
+    "source": "github"
+  },
+  "status": "active",
+  "version": "1.0.0",
+  "transports": [
+    {
+      "type": "stdio"
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@solarpunkltd/swarm-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "Bee API URL",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "BEE_API_URL"
+        },
+        {
+          "name": "BEE_FEED_PK",
+          "description": "Private key for Swarm Feed operations (required for feed functionality)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "AUTO_ASSIGN_STAMP",
+          "description": "Whether to automatically assign a postage stamp batch to uploads (true/false)",
+          "isRequired": false,
+          "format": "boolean",
+          "default": "true",
+          "isSecret": false
+        },
+        {
+          "name": "DEFERRED_UPLOAD_SIZE_THRESHOLD_MB",
+          "description": "Size threshold in megabytes for using deferred uploads",
+          "isRequired": false,
+          "format": "number",
+          "default": "5",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

@@ -97,16 +97,19 @@ The MCP server configuration is defined in a JSON object with the following stru
 
 1. **BEE_API_URL** (string, optional)
     - The URL of the Bee API endpoint
-    - If omitted, it will fall back to the default Swarm Gateway
-    - Example: "http://localhost:1633"
-2. **BEE_BATCH_ID** (string, optional)
-    - The ID of the postage stamp batch to use for uploads
-    - If the batch ID is not provided, the Swarm Gateway defaults to using its own postage stamp batch
-    - If a custom _BEE_API_URL_ is provided, this field becomes **required**
-    - Example: "batch-123"
-3. **BEE_FEED_PK** (string, optional)
+    - If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`
+    - Example: `http://localhost:1633`
+2. **BEE_FEED_PK** (string, optional)
     - The private key of the Swarm Feed to use
-    - If the private key is not provided, functionalities related to the Swarm Feed **will not work**
+    - If not provided, Swarm Feed functionality will be disabled
+3. **AUTO_ASSIGN_STAMP** (boolean, optional)
+    - Whether to automatically assign a postage stamp if none is provided
+    - Default: `true`
+    - Set to `false` to disable automatic stamp assignment
+4. **DEFERRED_UPLOAD_SIZE_THRESHOLD_MB** (number, optional)
+    - Size threshold in megabytes for deferred uploads
+    - Files larger than this size will be uploaded asynchronously
+    - Default: 5 (MB)
 
 ## Setting up MCP Clients
 

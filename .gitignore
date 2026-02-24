@@ -17,6 +17,7 @@ npm-debug.log*
 .idea/
 *.swp
 *.swo
+.windsurf/
 
 # Operating System files
 .DS_Store

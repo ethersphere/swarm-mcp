@@ -1,7 +1,10 @@
 {
   "name": "swarm-mcp",
-  "version": "1.0.0",
+  "version": "0.9.5",
   "main": "dist/index.js",
+  "bin": {
+    "swarm-mcp": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "npm run start:stdio",
@@ -18,9 +21,10 @@
   "description": "",
   "dependencies": {
     "@ethereumjs/wallet": "^10.0.0",
-    "@ethersphere/bee-js": "^9.4.1",
+    "@ethersphere/bee-js": "^10.1.1",
     "@modelcontextprotocol/sdk": "^1.13.2",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0"
   },
   "devDependencies": {
