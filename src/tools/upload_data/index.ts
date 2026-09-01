@@ -2,13 +2,13 @@
  * MCP Tool: upload_data
  * Uploads text data to Swarm.
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "../../config";
 import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
+  getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
@@ -20,16 +20,19 @@ export async function uploadData(
   bee: Bee
 ): Promise<ToolResponse> {
   if (!args.data) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: data"
-    );
+    return getToolErrorResponse("Missing required parameter: data.");
   }
 
-  const postageBatchId = await getUploadPostageBatchId(
+  const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
     bee
   );
+
+  if (error !== null) {
+    return getToolErrorResponse(error);
+  } else if (postageBatchId === null) {
+    return getToolErrorResponse("No postage batch id.");
+  }
 
   const binaryData = Buffer.from(args.data);
 
@@ -41,11 +44,11 @@ export async function uploadData(
   try {
     result = await bee.uploadData(postageBatchId, binaryData, options);
   } catch (error) {
-    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
-    } else {
-      throw new McpError(ErrorCode.InvalidParams, "Unable to upload data.");
-    }
+    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
+      ? getErrorMessage(error)
+      : "Unable to upload data.";
+
+    return getToolErrorResponse(errorMsg);
   }
 
   return getResponseWithStructuredContent({

@@ -1,5 +1,5 @@
 export interface CreatePostageStampArgs {
-  size: number;
+  size: string;
   duration: string;
   label?: string;
 }

@@ -43,4 +43,15 @@ describe("can list tools", () => {
       "query_upload_progress",
     ]);
   });
+  test("Should fail validation with invalid parameters", async () => {
+    await expect(
+      client.callTool({
+        name: "upload_data",
+        arguments: {
+          // Missing required 'data' field
+          redundancyLevel: 0,
+        },
+      })
+    ).rejects.toThrow();
+  });
 });

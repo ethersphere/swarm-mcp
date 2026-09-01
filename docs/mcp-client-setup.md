@@ -8,12 +8,12 @@ applications.
 
 - [Building the Project](#building-the-project)
 - [Understanding the Configuration](#understanding-the-configuration)
-    - [Configuration Structure](#configuration-structure)
-    - [Configuration Fields](#configuration-fields)
+  - [Configuration Structure](#configuration-structure)
+  - [Configuration Fields](#configuration-fields)
 - [Setting up MCP Clients](#setting-up-mcp-clients)
-    - [Claude Desktop](#claude-desktop)
-    - [Windsurf](#windsurf)
-    - [Cursor](#cursor)
+  - [Claude Desktop](#claude-desktop)
+  - [Windsurf](#windsurf)
+  - [Cursor](#cursor)
 
 ## Building the Project
 
@@ -21,25 +21,29 @@ Before you can use the Swarm MCP client, you'll need to build the project to gen
 steps:
 
 1. **Prerequisites**:
-    - Node.js (v16 or later recommended)
-    - npm (comes with Node.js)
-    - Git (for cloning the repository)
+   - Node.js (v18 or later recommended)
+   - npm (comes with Node.js)
+   - Git (for cloning the repository)
 
 2. **Clone the repository** (if you haven't already):
+
    ```bash
    git clone <repository-url>
    cd swarm-mcp
    ```
 
 3. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
 4. **Build the project**:
+
    ```bash
    npm run build
    ```
+
    This will create a `dist` folder in your project root containing the compiled JavaScript files.
 
 5. **Verify the build**:
@@ -64,10 +68,7 @@ The MCP server configuration is defined in a JSON object with the following stru
   "mcpServers": {
     "ServerName": {
       "command": "executable",
-      "args": [
-        "arg1",
-        "arg2"
-      ],
+      "args": ["arg1", "arg2"],
       "env": {
         "ENV_VAR": "value"
       }
@@ -79,37 +80,41 @@ The MCP server configuration is defined in a JSON object with the following stru
 ### Configuration Fields
 
 1. **ServerName** (string, required)
-    - A user-defined name for the MCP server (e.g., "Swarm")
-    - Appears in the UI to identify the server
+   - A user-defined name for the MCP server (e.g., "Swarm")
+   - Appears in the UI to identify the server
 2. **command** (string, required)
-    - The command to execute to start the MCP server
-    - Common values: "node", "python", or a direct path to an executable (e.g. "npx" or "uv")
+   - The command to execute to start the MCP server
+   - Common values: "node", "python", or a direct path to an executable (e.g. "npx" or "uv")
 3. **args** (array of strings, optional)
-    - Command-line arguments to pass to the command
-    - Typically includes the path to the server script
-    - Example: ["/path/to/your/server.js"]
+   - Command-line arguments to pass to the command
+   - Typically includes the path to the server script
+   - Example: ["/path/to/your/server.js"]
 4. **env** (object, optional)
-    - Environment variables to set when starting the server
-    - Useful for configuration that shouldn't be hardcoded
-    - Example: {"BEE_API_URL": "url-to-bee-node"}
+   - Environment variables to set when starting the server
+   - Useful for configuration that shouldn't be hardcoded
+   - Example: {"BEE_API_URL": "url-to-bee-node"}
 
 #### Swarm-specific Environment Variables
 
 1. **BEE_API_URL** (string, optional)
-    - The URL of the Bee API endpoint
-    - If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`
-    - Example: `http://localhost:1633`
+   - The URL of the Bee API endpoint
+   - If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`
+   - Example: `http://localhost:1633`
 2. **BEE_FEED_PK** (string, optional)
-    - The private key of the Swarm Feed to use
-    - If not provided, Swarm Feed functionality will be disabled
+   - The private key of the Swarm Feed to use
+   - If not provided, Swarm Feed functionality will be disabled
 3. **AUTO_ASSIGN_STAMP** (boolean, optional)
-    - Whether to automatically assign a postage stamp if none is provided
-    - Default: `true`
-    - Set to `false` to disable automatic stamp assignment
+   - Whether to automatically assign a postage stamp if none is provided
+   - Default: `true`
+   - Set to `false` to disable automatic stamp assignment
 4. **DEFERRED_UPLOAD_SIZE_THRESHOLD_MB** (number, optional)
-    - Size threshold in megabytes for deferred uploads
-    - Files larger than this size will be uploaded asynchronously
-    - Default: 5 (MB)
+   - Size threshold in megabytes for deferred uploads
+   - Files larger than this size will be uploaded asynchronously
+   - Default: 5 (MB)
+5. **TASK_TTL_MS** (number, optional)
+   - Time to live of a task in milliseconds.
+   - If the task TTL specified by the MCP client is larger than this value, that one will be used. 
+   - Default: 1200000 (20 minutes).
 
 ## Setting up MCP Clients
 
@@ -134,11 +139,8 @@ Claude Desktop is a desktop application that can be used to interact with Claude
   "mcpServers": {
     "Swarm": {
       "command": "npx",
-      "args": [
-        "/path/to/your/swarm-mcp/dist/index.js"
-      ],
-      "env": {
-      }
+      "args": ["/path/to/your/swarm-mcp/dist/index.js"],
+      "env": {}
     }
   }
 }
@@ -194,11 +196,8 @@ Windsurf is a code editor that can be used to edit code with real-time AI assist
   "mcpServers": {
     "Swarm": {
       "command": "npx",
-      "args": [
-        "/path/to/your/swarm-mcp/dist/index.js"
-      ],
-      "env": {
-      }
+      "args": ["/path/to/your/swarm-mcp/dist/index.js"],
+      "env": {}
     }
   }
 }
@@ -254,11 +253,8 @@ features.
   "mcpServers": {
     "Swarm": {
       "command": "npx",
-      "args": [
-        "/path/to/your/swarm-mcp/dist/index.js"
-      ],
-      "env": {
-      }
+      "args": ["/path/to/your/swarm-mcp/dist/index.js"],
+      "env": {}
     }
   }
 }

@@ -7,10 +7,14 @@ async function main() {
   const swarmMCPServer = new SwarmMCPServer();
   const transport = new StdioServerTransport();
   await swarmMCPServer.server.connect(transport);
+
+  process.on("SIGINT", async () => {
+    await swarmMCPServer.close();
+    process.exit(0);
+  });
 }
 
 main().catch((error) => {
   console.error("Failed to start Swarm MCP Server:", error);
   process.exit(1);
 });
-

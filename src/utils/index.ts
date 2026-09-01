@@ -1,6 +1,7 @@
 import { Bee, PostageBatch } from "@ethersphere/bee-js";
 import { PostageBatchCurated, PostageBatchSummary } from "../models";
 import { NODE_STATUS_CHECK_CALL_TIMEOUT, NOT_FOUND_STATUS } from "../constants";
+import { SwarmToolsSchema } from "../schemas";
 
 export function hexToBytes(hex: string): Uint8Array {
   if (hex.startsWith("0x")) {
@@ -51,6 +52,16 @@ export const getResponseWithStructuredContent = <T>(data: T): ToolResponse => ({
   structuredContent: data,
 });
 
+export const getToolErrorResponse = (text: string): ToolResponse => ({
+  content: [
+    {
+      type: "text",
+      text,
+    },
+  ],
+  isError: true,
+});
+
 export const errorHasStatus = (error: unknown, status: number) => {
   if (typeof error === "object" && error !== null && "status" in error) {
     return error.status === status;
@@ -97,9 +108,9 @@ export const determineIfGateway = async (bee: Bee) => {
 
   try {
     // Request fails for gateways with 404.
-    const getNodeInfoPromise =  bee.getNodeInfo();
+    const getNodeInfoPromise = bee.getNodeInfo();
 
-    const [response, hasTimedOut] = await runWithTimeout(
+    const [, hasTimedOut] = await runWithTimeout(
       getNodeInfoPromise,
       NODE_STATUS_CHECK_CALL_TIMEOUT
     );
@@ -110,6 +121,14 @@ export const determineIfGateway = async (bee: Bee) => {
       isGateway = true;
     }
   }
-  
+
   return isGateway;
+};
+
+export const getToolsWithTaskSupport = () => {
+  return SwarmToolsSchema.filter((schema) => {
+    const taskSupport = schema.execution?.taskSupport;
+
+    return taskSupport === "optional" || taskSupport === "required";
+  }).map((schema) => schema.name);
 };

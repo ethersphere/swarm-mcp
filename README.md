@@ -1,7 +1,5 @@
 # Swarm MCP Server
 
-**Disclaimer:** This implementation is a proof-of-concept only, should not be used in production.
-
 A Model Context Protocol (MCP) server implementation that uses Ethereum Swarm's Bee API for storing and retrieving data.
 
 ## Overview
@@ -20,22 +18,37 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 - Get a postage stamp batch.
 - List postage stamp batches.
 - Extend storage and duration of a postage stamp batch.
+- Track the progress of deferred (background) uploads.
+- Run long-running operations as MCP tasks.
+- Expose every tool as an MCP prompt.
 
 ## Configuration Options
 
-| Option                              | Type          | Required      | Description                                                                                                                                               |
-| ----------------------------------- | --------------| --------------| --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BEE_API_URL`                       | string        | **optional** (unless using your own node) | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`.|
-| `BEE_FEED_PK`                       | string        | **optional** (cannot update feed without it)  | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                     |
-| `AUTO_ASSIGN_STAMP`                 | boolean       | **optional**  | Whether to automatically assign a postage stamp if none is provided. Default value is: true. Set to false to disable automatic stamp assignment.          |
-| `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number        | **optional**  | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                  |
+| Option                              | Type    | Required                                     | Description                                                                                                                                                |
+| ----------------------------------- | ------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BEE_API_URL`                       | string  | **optional** (unless using your own node)    | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`. |
+| `BEE_FEED_PK`                       | string  | **optional** (cannot update feed without it) | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                      |
+| `AUTO_ASSIGN_STAMP`                 | boolean | **optional**                                 | Whether to automatically assign a postage stamp if none is provided. Default value is: true. Set to false to disable automatic stamp assignment.           |
+| `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number  | **optional**                                 | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                   |
+| `TASK_TTL_MS`                       | number  | **optional**                                 | Time to live of a task in milliseconds. Default value is: 1200000 (20 minutes). If the task TTL specified by the MCP client is larger than this value, that one will be used.                                                                          |
+| `PORT`                              | number  | **optional** (web mode only)                 | Port the HTTP server listens on. Default value is: 3000.                                                                                                                                                                                             |
+| `HOST`                              | string  | **optional** (web mode only)                 | Host interface the HTTP server binds to. Default value is: `0.0.0.0`.                                                                                                                                                                                |
 
+## Bee Node vs. Swarm Gateway
 
+The server detects at runtime whether `BEE_API_URL` points at the public Swarm Gateway or at a full Bee node, and adapts
+what it exposes:
+
+- **Own Bee node** (e.g. `http://localhost:1633`): all tools are available, and tools that support it can be executed as
+  MCP tasks.
+- **Swarm Gateway** (the default when `BEE_API_URL` is omitted): the postage-stamp tools (`create_postage_stamp`,
+  `get_postage_stamp`, `list_postage_stamps`, `extend_postage_stamp`) and `query_upload_progress` are omitted from
+  `tools/list`, because the gateway does not expose those endpoints. Task execution is also disabled, so every call runs
+  synchronously.
 
 ## MCP Tools
 
 The server provides the following MCP tools:
-
 
 ### `create_postage_stamp`
 
@@ -43,7 +56,7 @@ Buy postage stamp batch based on size in megabytes and duration.
 
 **Parameters:**
 
-- `size`: The storage size in MB (Megabytes). These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB.
+- `size`: Storage capacity, e.g. 1GB, 1MB, 1KB.
 - `duration`: Duration for which the data should be stored. Time to live of the postage stamp batch, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month.
 - `label`: (Optional) Sets label for the postage stamp batch.
 
@@ -67,7 +80,6 @@ Get a specific postage stamp batch based on batch id.
 Give me the details for batch 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa.
 ```
 
-
 ### `list_postage_stamps`
 
 List the available postage stamp batches.
@@ -85,7 +97,6 @@ List the available postage stamp batches.
 List my stamps.
 ```
 
-
 ### `extend_postage_stamp`
 
 Increase the duration (relative to current duration) or size (in megabytes) of a postage stamp batch.
@@ -93,15 +104,14 @@ Increase the duration (relative to current duration) or size (in megabytes) of a
 **Parameters:**
 
 - `postageBatchId`: The id of the postage stamp batch for which extend is performed.
-- `size`: (Optional) The storage size in MB (Megabytes). These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB.
+- `size`: (Optional) Storage capacity, e.g. 1GB, 1MB, 1KB.
 - `duration`: (Optional) Duration for which the data should be stored. Time to live of the postage stamp batch, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month.
 
 **Sample prompt:**
 
 ```bash
-Extend 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa to 5 days.
+Extend 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa by 5 days.
 ```
-
 
 ### `upload_data`
 
@@ -119,7 +129,6 @@ Upload text data to Swarm.
 Upload data to Swarm: Hello World!.
 ```
 
-
 ### `download_data`
 
 Downloads immutable data from a Swarm content address hash.
@@ -134,7 +143,6 @@ Downloads immutable data from a Swarm content address hash.
 Download data from Swarm: 76d133e2798d2b15db55b6c3de01303acd86e43998eab372e25c5a2115bf3f0b.
 ```
 
-
 ### `update_feed`
 
 Update the feed of a given topic with new data.
@@ -142,7 +150,7 @@ Update the feed of a given topic with new data.
 **Parameters:**
 
 - `data`: Arbitrary string to upload.
-- `memoryTopic`: If provided, uploads the lastes data to a feed with this topic. It is the label of the memory that can be used later to retrieve the data instead of its content hash. If not a hex string, it will be hashed to create a feed topic.
+- `memoryTopic`: If provided, uploads the latest data to a feed with this topic. It is the label of the memory that can be used later to retrieve the data instead of its content hash. If not a hex string, it will be hashed to create a feed topic.
 - `postageBatchId`: (Optional) The postage stamp batch ID which will be used to perform the upload, if it is provided.
 
 **Sample prompt:**
@@ -150,7 +158,6 @@ Update the feed of a given topic with new data.
 ```bash
 Update the Swarm feed of Topic1 with: Message1 using postage batch id 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa.
 ```
-
 
 ### `read_feed`
 
@@ -167,15 +174,13 @@ Retrieve the latest data from the feed of a given topic.
 Read the Swarm feed of Topic1.
 ```
 
-
 ### `upload_file`
 
-Upload a file to Swarm.
+Upload a file to Swarm. Small files upload synchronously and return the reference. Large files (over the deferred-upload threshold) upload in the background: the response immediately includes the final reference (computed locally) and a tag ID for `query_upload_progress`; the content becomes retrievable at the reference once the upload completes. When `redundancyLevel` > 0, only the tag ID is returned immediately.
 
 **Parameters:**
 
-- `data`: base64 encoded file content or file path.
-- `isPath`: Wether the data parameter is a path.
+- `data`: File content or file path.
 - `redundancyLevel`: (Optional) Redundancy level for fault tolerance (higher values provide better fault tolerance but increase storage overhead). 0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid.
 - `postageBatchId`: (Optional) The postage stamp batch ID which will be used to perform the upload, if it is provided.
 
@@ -185,15 +190,14 @@ Upload a file to Swarm.
 Upload to Swarm the file: uploads/file.txt.
 ```
 
-
 ### `upload_folder`
 
 Upload a folder to Swarm.
 
 **Parameters:**
 
-- `folderPath`: Path to the folder to upload. 
-- `redundancyLevel`: (Optional) Redundancy level for fault tolerance (higher values provide better fault tolerance but increase storage overhead). 0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid. 
+- `folderPath`: Path to the folder to upload.
+- `redundancyLevel`: (Optional) Redundancy level for fault tolerance (higher values provide better fault tolerance but increase storage overhead). 0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid.
 - `postageBatchId`: (Optional) The postage stamp batch ID which will be used to perform the upload, if it is provided.
 
 **Sample prompt:**
@@ -202,16 +206,15 @@ Upload a folder to Swarm.
 Upload to Swarm folder: /home/conversational-agent-client/uploads.
 ```
 
-
 ### `download_files`
 
-Download folder, files from a Swarm reference and save to file path or return file list of the reference.
-
+Download a file or folder from a Swarm reference and save it to disk. Handles both single files and folder manifests. The
+reference must be a manifest — for raw text data uploaded with `upload_data`, use `download_data` instead.
 
 **Parameters:**
 
 - `reference`: Swarm reference hash.
-- `filePath`: (Optional) Optional file path to save the downloaded content. If not provided list of files in the manifest will be returned.
+- `filePath`: (Optional) Destination **folder** (not a filename) to save the downloaded content into. Files from the manifest are written inside this folder under their original names. Absolute paths are recommended; relative paths resolve against the server's working directory. If omitted, files are saved into the server's current working directory. Only available in `stdio` mode.
 
 **Sample prompt:**
 
@@ -219,20 +222,53 @@ Download folder, files from a Swarm reference and save to file path or return fi
 Download from Swarm the file with reference ba35af06601ddf5ac3d71ee33da0db7537215a914fd6a5414b5597bb3d618bdb to folder downloads.
 ```
 
-
 ### `query_upload_progress`
 
-Query upload progress for a specific upload session identified with the returned Tag ID.
+Query upload progress for a specific upload session identified with the returned Tag ID. Also returns the final Swarm
+`reference` of the upload, which is how you obtain the reference of a deferred `upload_folder` (a folder's reference
+cannot be computed up front) once `processedPercentage` reaches 100.
 
 **Parameters:**
 
-- `tagId`: Tag ID returned by swarm-upload-file and swarm-upload-folder tools to track upload progress.
+- `tagId`: Tag ID returned by the `upload_file` and `upload_folder` tools to track upload progress.
 
 **Sample prompt:**
 
 ```bash
 Query Swarm for upload tag with id: 1.
 ```
+
+## MCP Tasks (long-running operations)
+
+The server declares the `tasks` capability, so a client can ask for a slow operation to be executed as a task and poll
+for its result instead of holding the tool call open.
+
+Task execution is opt-in per call: the client includes task parameters (`ttl`, `pollInterval`) in the `tools/call`
+request. If it does not, the tool runs synchronously as usual.
+
+The following tools accept task execution (`taskSupport: "optional"`):
+
+- `upload_file`
+- `upload_folder`
+- `download_files`
+- `create_postage_stamp`
+- `extend_postage_stamp`
+
+All other tools are declared `taskSupport: "forbidden"` and always run synchronously. Task execution also requires a real
+Bee node — see [Bee Node vs. Swarm Gateway](#bee-node-vs-swarm-gateway).
+
+Supported task requests: `tasks/get`, `tasks/result`, and `tasks/list` (paginated with a cursor, 50 tasks per page).
+
+Task lifetime is governed by `TASK_TTL_MS` (default 20 minutes); the effective TTL is the larger of that value and the
+one the client requested. The default poll interval is 5 seconds. Tasks are held in an in-memory store, so they do not
+survive a server restart.
+
+## MCP Prompts
+
+The server also declares the `prompts` capability and exposes one prompt per tool, named `<tool_name>_prompt` (e.g.
+`upload_data_prompt`, `download_files_prompt`). Each prompt takes the same arguments as the corresponding tool and
+returns a natural-language instruction — useful for clients that surface prompts as slash commands or templates. The
+prompt list is generated from the tool schemas, so it always stays in sync with the tools above.
 
 ## Setup
 
@@ -254,14 +290,21 @@ npm ci
 
 ### Configuration
 
-The server configuration is located in `src/config.ts`:
+You need to create a `.env` file with the content from `.env.example`. Update the environment variables with the desired values.
 
-You can customize:
+### Tests, Linting and Formatting
 
-- **Bee API endpoint**: Set to any Swarm Bee node or gateway
-- **Postage Batch ID**: Required for uploading data to Swarm (the default ID is a placeholder for testing)
+```bash
+npm test          # run the Jest test suite
+npm run lint      # ESLint
+npm run format    # Prettier, writes in place
+```
 
-Modify these values as needed for your environment.
+### Publishing
+
+This server is also published to the Model Context Protocol registry as `io.github.Solar-Punk-Ltd/swarm-mcp`, with the
+npm package `@solarpunkltd/swarm-mcp` (stdio transport). The registry metadata lives in `server.json`. For the release
+and publishing process, see the [MCP registry publishing guide](./docs/mcp-registry-publish.md).
 
 ## Running the Server Locally
 
@@ -298,9 +341,9 @@ npm start
 npm run start:stdio
 ```
 
-### Web Server (HTTP + SSE)
+### Web Server (HTTP)
 
-This runs the server as a web service on port 3000, with endpoints for both HTTP and SSE.
+This runs the server as a web service on port 3000, with endpoints for HTTP.
 
 **Development (without building):**
 
@@ -323,7 +366,7 @@ npm run start:web
 
 ## Docker
 
-This project includes a Dockerfile to run the Swarm MCP server as a containerized service, with both HTTP and SSE transports.
+This project includes a Dockerfile to run the Swarm MCP server as a containerized service with HTTP transport.
 
 - `Dockerfile`: Builds a single image for the server, which runs on port 3000.
 
@@ -337,7 +380,7 @@ docker build -t swarm-mcp .
 
 ### Running the Docker Container
 
-To run the server, use the `docker run` command. The container exposes port `3000` for both HTTP and SSE.
+To run the server, use the `docker run` command. The container exposes port `3000` for HTTP.
 
 ```bash
 docker run --name swarm-mcp -p 3000:3000 swarm-mcp
@@ -351,60 +394,55 @@ To configure the server, pass environment variables to the container using the `
 docker run -p 3000:3000 \
   -e BEE_API_URL="http://localhost:1633" \
   -e BEE_FEED_PK="your_private_key_here" \
+  -e AUTO_ASSIGN_STAMP="true" \
+  -e DEFERRED_UPLOAD_SIZE_THRESHOLD_MB="5" \
   swarm-mcp
 ```
 
 ### Testing with cURL
 
-You can test if the servers are running correctly by sending a `tools/list` request using `curl`.
+The HTTP transport is session-based, so `tools/list` cannot be sent on its own: every session starts with an
+`initialize` request, and the server returns the session id in the `Mcp-Session-Id` response header. Subsequent requests
+must echo that id back.
 
-#### HTTP Server
+First, initialize and read the session id from the response headers (`-i`):
 
-This command asks the server to list all available tools and expects a single JSON response.
+```bash
+curl -i -X POST http://localhost:3000/mcp \
+-H "Content-Type: application/json" \
+-H "Accept: application/json, text/event-stream" \
+-d '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-06-18",
+    "capabilities": {},
+    "clientInfo": { "name": "curl", "version": "1.0.0" }
+  }
+}'
+```
+
+Then list the tools, passing the id from the `Mcp-Session-Id` header above:
 
 ```bash
 curl -X POST http://localhost:3000/mcp \
 -H "Content-Type: application/json" \
 -H "Accept: application/json, text/event-stream" \
+-H "Mcp-Session-Id: <session-id-from-the-initialize-response>" \
 -d '{
   "jsonrpc": "2.0",
   "method": "tools/list",
-  "id": 1
+  "id": 2
 }'
 ```
 
-_Note:_ `text/event-stream` in the accept header is required for the HTTP server, even to return a JSON response.
+A successful response contains the list of the server's tools. Send `DELETE /mcp` with the same header to end the
+session.
 
-A successful response will be a JSON object containing a list of the server's tools.
-
-#### SSE Server
-
-Interacting with the SSE server is a two-step process. First, you establish a connection to get a `sessionId`, and then you use that ID to send messages.
-
-**Step 1: Open the SSE connection**
-
-Run the following command in a terminal. It will connect to the server and wait for events. The server will send back a `sessionId` which you will need for the next step.
-
-```bash
-# In Terminal 1
-curl -N -H "Accept:text/event-stream" http://localhost:3000/sse
-```
-
-The output will contain the session ID, for example:
-`id: "<your-session-id>"`
-
-**Step 2: Send a message**
-
-In a second terminal, use the `sessionId` from Step 1 to send a request. Replace `<your-session-id>` with the actual ID.
-
-```bash
-# In Terminal 2
-curl -X POST -H "Content-Type: application/json" \
--d '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":2}' \
-"http://localhost:3000/message?sessionId=<your-session-id>"
-```
-
-The response will appear in Terminal 1.
+_Note:_ `text/event-stream` in the accept header is required, and responses arrive as a server-sent event frame
+(`event: message` followed by a `data:` line holding the JSON-RPC payload) rather than as a bare JSON body. Requests with
+no session id are rejected with `400`, and requests naming an unknown or ended session with `404`.
 
 ## Using with MCP Clients
 
@@ -412,14 +450,17 @@ The server supports two connection methods:
 
 ### 1. Web Connection (Docker)
 
-When running the server in Docker, it operates as a web service with both HTTP and SSE endpoints. To connect your MCP client, you must use one that supports connecting to a remote server via URL.
-
-- **HTTP Server URL**: `http://localhost:3000/mcp`
-- **SSE Server URL**: `http://localhost:3000/sse`
+When running the server in Docker, it operates as a web service with HTTP endpoint. To connect your MCP client, you must use: `http://localhost:3000/mcp`.
 
 In your client's settings, add a new remote/custom connector and provide the appropriate URL.
 
-_**Note on supported features**_: Functionalities that require direct access to the local file system are not available in web mode. This includes using local paths for uploads (e.g., `upload_folder` or `upload_file` with `isPath: true`) and downloading directly to a file (e.g., `download_folder` with `filePath`). These features are only supported when running the server in `stdio` mode.
+_**Note on supported features**_: Functionalities that require direct access to the local file system are not available in web mode, and are only supported when running the server in `stdio` mode:
+
+- `upload_folder` is rejected outright — it always reads from the local file system.
+- `upload_file` is rejected when the `data` value resolves to an existing local file. The server decides this itself by
+  checking the path; there is no flag to set. Passing raw file content as `data` works in both modes.
+- `download_files` is rejected when `filePath` is supplied. Without `filePath` the call succeeds, but the files are
+  written into the working directory of the server process, not the client machine.
 
 ### 2. Stdio Connection (Local)
 

@@ -1,4 +1,3 @@
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import config from "../config";
 import { errorHasStatus } from ".";
 import { DEFAULT_GATEWAY_BATCH_ID, NOT_FOUND_STATUS } from "../constants";
@@ -7,16 +6,17 @@ import { Bee } from "@ethersphere/bee-js";
 export const getUploadPostageBatchId = async (
   argsPostageBatchId: string | undefined,
   bee: Bee
-): Promise<string> => {
+): Promise<{ postageBatchId: string | null; error: string | null }> => {
   let postageBatchId = argsPostageBatchId;
   const autoAssignStamp = config.bee.autoAssignStamp;
   let maxRemainingSize = 0;
 
   if (!postageBatchId && !autoAssignStamp) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      "No postageBatchId was provided. Please repeat the prompt and also specify the usable postage batch id."
-    );
+    return {
+      postageBatchId: null,
+      error:
+        "No postageBatchId was provided. Please repeat the prompt and also specify the usable postage batch id.",
+    };
   } else if (!postageBatchId) {
     try {
       const rawPostageBatches = await bee.getPostageBatches();
@@ -37,19 +37,23 @@ export const getUploadPostageBatchId = async (
       if (errorHasStatus(error, NOT_FOUND_STATUS)) {
         postageBatchId = DEFAULT_GATEWAY_BATCH_ID;
       } else {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Retrieval of postage batches failed."
-        );
+        return {
+          postageBatchId: null,
+          error: "Retrieval of postage batches failed.",
+        };
       }
     }
   }
 
   if (!postageBatchId) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      "There is no usable postage batch with capacity."
-    );
+    return {
+      postageBatchId: null,
+      error: "There is no usable postage batch with capacity.",
+    };
   }
-  return postageBatchId!;
+
+  return {
+    postageBatchId: postageBatchId!,
+    error: null,
+  };
 };

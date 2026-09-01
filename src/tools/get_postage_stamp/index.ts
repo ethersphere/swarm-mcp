@@ -2,11 +2,11 @@
  * MCP Tool: get_postage_stamp
  * Show a specific postage stamp.
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import {
   getBatchSummary,
   getResponseWithStructuredContent,
+  getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
 import { GetPostageStampArgs } from "./models";
@@ -23,10 +23,7 @@ export async function getPostageStamp(
   const { postageBatchId } = args;
 
   if (!postageBatchId) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: postageBatchId"
-    );
+    return getToolErrorResponse("Missing required parameter: postageBatchId.");
   }
 
   let rawPostageBatch;
@@ -34,12 +31,9 @@ export async function getPostageStamp(
   try {
     rawPostageBatch = await bee.getPostageBatch(postageBatchId);
   } catch (error) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Retrieval of postage batch failed."
-    );
+    return getToolErrorResponse("Retrieval of postage batch failed.");
   }
-  
+
   const { utilization, ...filteredPostageBatch } = rawPostageBatch;
 
   const batch: PostageBatchCurated = {

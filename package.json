@@ -13,7 +13,9 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "serve": "ts-node src/index.ts",
     "serve:web": "ts-node src/web.ts",
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -21,20 +23,31 @@
   "description": "",
   "dependencies": {
     "@ethereumjs/wallet": "^10.0.0",
-    "@ethersphere/bee-js": "^10.1.1",
-    "@modelcontextprotocol/sdk": "^1.13.2",
+    "@ethersphere/bee-js": "^10.4.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "uuid": "^13.0.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "jest": "^30.0.3",
     "nodemon": "^3.1.10",
+    "prettier": "^3.8.0",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.53.0"
   }
 }

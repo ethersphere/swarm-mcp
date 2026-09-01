@@ -1,5 +1,5 @@
 export interface ExtendPostageStampArgs {
   postageBatchId: string;
-  size?: number;
+  size?: string;
   duration?: string;
 }

@@ -1,5 +1,9 @@
 import dotenv from "dotenv";
-import { DEFERRED_UPLOAD_SIZE_THRESHOLD_MB } from "./constants";
+import {
+  DEFAULT_GATEWAY_URL,
+  DEFAULT_TASK_TTL_MS,
+  DEFERRED_UPLOAD_SIZE_THRESHOLD_MB,
+} from "./constants";
 
 dotenv.config({ quiet: true });
 
@@ -15,6 +19,7 @@ export interface BeeConfig {
   feedPrivateKey?: string;
   autoAssignStamp: boolean;
   deferredUploadSizeThreshold: number;
+  taskTtlMs: number;
 }
 
 export interface Config {
@@ -30,17 +35,18 @@ const config: Config = {
 
   // Bee API configuration
   bee: {
-    endpoint: process.env.BEE_API_URL || "https://api.gateway.ethswarm.org",
+    endpoint: process.env.BEE_API_URL || DEFAULT_GATEWAY_URL,
     feedPrivateKey: process.env.BEE_FEED_PK,
     autoAssignStamp:
-      process.env.AUTO_ASSIGN_STAMP !== undefined
+      process.env.AUTO_ASSIGN_STAMP !== undefined &&
+      process.env.AUTO_ASSIGN_STAMP !== ""
         ? process.env.AUTO_ASSIGN_STAMP === "true"
         : true,
     deferredUploadSizeThreshold:
       Number(process.env.DEFERRED_UPLOAD_SIZE_THRESHOLD_MB) ||
       DEFERRED_UPLOAD_SIZE_THRESHOLD_MB,
+    taskTtlMs: Number(process.env.TASK_TTL_MS) || DEFAULT_TASK_TTL_MS,
   },
 };
 
 export default config;
-
